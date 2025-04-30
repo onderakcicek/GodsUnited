@@ -2,8 +2,11 @@
 
 
 #include "BaseCharacter.h"
+
+#include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 
 #include "GodsUnited/GameLogic/GameModes/PvPGameMode/Definitions.h"
 #include "GodsUnited/GameLogic/GameModes/PvPGameMode/PvPGameMode.h"
@@ -18,26 +21,9 @@ ABaseCharacter::ABaseCharacter()
 	// Initialize properties
 	CurrentWaypointIndex = 0;
 	bIsFollowingPath = false;
-	MovementTolerance = 5.0f;
+	MovementTolerance = 100.0f;
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-
-	Mesh = CreateOptionalDefaultSubobject<USkeletalMeshComponent>(ACharacter::MeshComponentName);
-	if (Mesh)
-	{
-		Mesh->AlwaysLoadOnClient = true;
-		Mesh->AlwaysLoadOnServer = true;
-		Mesh->bOwnerNoSee = false;
-		Mesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
-		Mesh->bCastDynamicShadow = true;
-		Mesh->bAffectDynamicIndirectLighting = true;
-		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-		Mesh->SetupAttachment(RootComponent);
-		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
-		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
-		Mesh->SetGenerateOverlapEvents(false);
-		Mesh->SetCanEverAffectNavigation(false);
-	}
+	//RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -57,11 +43,13 @@ void ABaseCharacter::BeginPlay()
 void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	const bool bIsFollowing = IsFollowingPath();
+	auto MoveComp = GetMovementComponent();
+	
 	// If we're in action phase and following a path, handle movement
-	if (bIsFollowingPath && GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Action)
+	if (bIsFollowing && MoveComp && GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Action)
 	{
-		MoveToCurrentWaypoint(DeltaTime);
+		MoveToCurrentWaypoint();
 
 		// Check if we've reached the current waypoint
 		if (HasReachedCurrentWaypoint())
@@ -148,7 +136,7 @@ AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, bool bIsRightClick)
 {
 	// Adjust waypoint height to be at ground level or fixed height
 	// For top-down view, we'll place waypoints at a fixed height (slightly above zero)
-	Location.Z = 10.0f;
+	//Location.Z = 10.0f;
 
 	// Spawn a waypoint actor
 	FActorSpawnParameters SpawnParams;
@@ -226,11 +214,11 @@ void ABaseCharacter::TriggerRightClickAction()
 	OnRightClickWaypointReached();
 }
 
-void ABaseCharacter::MoveToCurrentWaypoint(float DeltaTime)
+void ABaseCharacter::MoveToCurrentWaypoint()
 {
 	if (Path.Num() > 0 && CurrentWaypointIndex < Path.Num())
 	{
-		AWaypoint* CurrentWaypoint = Path[CurrentWaypointIndex];
+		const AWaypoint* CurrentWaypoint = Path[CurrentWaypointIndex];
 
 		if (CurrentWaypoint)
 		{
@@ -241,23 +229,12 @@ void ABaseCharacter::MoveToCurrentWaypoint(float DeltaTime)
 			// Adjust target to only move in the horizontal plane
 			FVector AdjustedTarget = FVector(TargetLocation.X, TargetLocation.Y, CurrentLocation.Z);
 
-			// Linear interpolation (more linear movement)
-			float MovementSpeed = 200.f;
-
-			// Move in a straight line at a constant speed
-			FVector NewLocation = FMath::VInterpConstantTo(CurrentLocation, AdjustedTarget, DeltaTime, MovementSpeed);
-			SetActorLocation(NewLocation, true); // sweepTest=true to check for collisions
-
+			UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), AdjustedTarget);
+			
 			// Calculate rotation direction and rotate the character
 			if (!AdjustedTarget.Equals(CurrentLocation, 0.1f))
 			{
-				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();
-				FRotator TargetRotation = Direction.Rotation();
-				FRotator NewRotation = FRotator(0, TargetRotation.Yaw-90, 0);
-				//SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewRotation, DeltaTime, 5.0f));
-				//SetActorRotation(NewRotation);
-				Mesh->SetWorldRotation(NewRotation);
-				
+				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();				
 
 				// Debug: Draw arrow showing the rotation direction
 				FVector StartLocation = GetActorLocation() + FVector(0, 0, 50); // Karakterin biraz üstünden başlasın
@@ -313,7 +290,7 @@ bool ABaseCharacter::HasReachedCurrentWaypoint() const
 
 			// Calculate only XY distance
 			float Distance = FVector::Distance(CharacterLocation, WaypointLocation);
-
+			UE_LOG(LogTemp, Display, TEXT("Current Distance: %f"), Distance);
 			// Return true if within tolerance (only consider XY distance)
 			return Distance <= MovementTolerance;
 		}

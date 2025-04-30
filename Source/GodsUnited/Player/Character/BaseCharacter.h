@@ -8,8 +8,8 @@
 
 class APvPGameMode;
 
-UCLASS()
-class GODSUNITED_API ABaseCharacter : public APawn
+UCLASS(Blueprintable, BlueprintType)
+class GODSUNITED_API ABaseCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -27,10 +27,6 @@ protected:
 	// Reference to the game mode
 	UPROPERTY()
 	APvPGameMode* GameMode;
-
-	/** The main skeletal mesh associated with this Character (optional sub-object). */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<USkeletalMeshComponent> Mesh;
 
 public:
 	// Called every frame
@@ -93,7 +89,7 @@ private:
 	float MovementTolerance;
 
 	// Move towards the current waypoint
-	void MoveToCurrentWaypoint(float DeltaTime);
+	void MoveToCurrentWaypoint();
 
 	// Check if the character has reached the current waypoint
 	bool HasReachedCurrentWaypoint() const;

@@ -75,7 +75,7 @@ void APvPGameMode::StartActionPhase()
             {
                 // Move character to ground level for action phase
                 FVector CurrentLocation = Character->GetActorLocation();
-                Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
+                //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
                 
                 // Enable gravity for action phase (character will follow ground)
                 //Character->EnableGravity();
