@@ -3,10 +3,10 @@
 
 #include "BaseCharacter.h"
 
-#include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "AIController.h"
+#include "Navigation/PathFollowingComponent.h"
 
 #include "GodsUnited/GameLogic/GameModes/PvPGameMode/Definitions.h"
 #include "GodsUnited/GameLogic/GameModes/PvPGameMode/PvPGameMode.h"
@@ -209,9 +209,9 @@ void ABaseCharacter::TriggerRightClickAction()
 {
 	// Log that the action was triggered
 	UE_LOG(LogTemp, Display, TEXT("Right-click action triggered at waypoint %d"), CurrentWaypointIndex);
-
+	
 	// Call the blueprint event
-	OnRightClickWaypointReached();
+	TriggerAction();
 }
 
 void ABaseCharacter::MoveToCurrentWaypoint()
@@ -229,7 +229,13 @@ void ABaseCharacter::MoveToCurrentWaypoint()
 			// Adjust target to only move in the horizontal plane
 			FVector AdjustedTarget = FVector(TargetLocation.X, TargetLocation.Y, CurrentLocation.Z);
 
-			UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), AdjustedTarget);
+			//UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), AdjustedTarget);
+			FVector ToTarget = TargetLocation - GetActorLocation();
+			if (ToTarget.Size() > 10.f)
+			{
+				FVector Direction = ToTarget.GetSafeNormal();
+				AddMovementInput(Direction, 1.0f);
+			}
 			
 			// Calculate rotation direction and rotate the character
 			if (!AdjustedTarget.Equals(CurrentLocation, 0.1f))
@@ -237,8 +243,8 @@ void ABaseCharacter::MoveToCurrentWaypoint()
 				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();				
 
 				// Debug: Draw arrow showing the rotation direction
-				FVector StartLocation = GetActorLocation() + FVector(0, 0, 50); // Karakterin biraz üstünden başlasın
-				FVector EndLocation = StartLocation + Direction * 200.0f; // Oku ileri doğru çizelim
+				FVector StartLocation = GetActorLocation() + FVector(0, 0, 50);
+				FVector EndLocation = StartLocation + Direction * 200.0f;
 
 				DrawDebugDirectionalArrow(
 					GetWorld(),
