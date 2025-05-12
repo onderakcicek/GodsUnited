@@ -7,6 +7,7 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
+	None,
 	Gadget,
 	Weapon
 };
@@ -78,3 +79,8 @@ enum class EUsageType : uint8
 	Self,
 	Opponent,
 };
+
+
+
+
+
