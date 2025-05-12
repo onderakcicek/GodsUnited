@@ -52,8 +52,8 @@ public:
 	void ResetPath();
 
 	// Function to be called when passing through a right-click waypoint
-	UFUNCTION(BlueprintImplementableEvent, Category = "Navigation")
-	void OnRightClickWaypointReached();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actions")
+	void TriggerAction();
 
 	// C++ implementation of the function to be called at right-click waypoints
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
