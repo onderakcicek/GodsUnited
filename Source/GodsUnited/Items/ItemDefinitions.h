@@ -4,6 +4,27 @@
 #include "UObject/Object.h"
 #include "ItemDefinitions.generated.h"
 
+//////////////////////////////////////////////////////////////////////////////////////
+// LOGS
+//////////////////////////////////////////////////////////////////////////////////////
+
+GODSUNITED_API DECLARE_LOG_CATEGORY_EXTERN(LogItemSubsystem, Log, All);
+
+#define ITEM_LOG_ERR(MessageFmt, ...) \
+UE_LOG(LogItemSubsystem, Error, TEXT("%hs - " MessageFmt), __FUNCTION__, ##__VA_ARGS__)
+
+//////////////////////////////////////////////////////////////////////////////////////
+// CONSTANTS
+//////////////////////////////////////////////////////////////////////////////////////
+
+namespace Item
+{
+	const FString DataTablePath = TEXT("/Script/Engine.DataTable'/Game/DataTables/DT_Items.DT_Items'");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// TYPES
+//////////////////////////////////////////////////////////////////////////////////////
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
@@ -24,7 +45,7 @@ enum class EWeaponType : uint8
 	SniperRifle,
 
 	OnePastLast UMETA(Hidden),
-	First = None + 1  UMETA(Hidden),
+	First = None + 1 UMETA(Hidden),
 	Last = OnePastLast - 1 UMETA(Hidden),
 };
 
@@ -39,7 +60,7 @@ enum class EGadgetType : uint8
 	OverclockModule,
 
 	OnePastLast UMETA(Hidden),
-	First = None + 1  UMETA(Hidden),
+	First = None + 1 UMETA(Hidden),
 	Last = OnePastLast - 1 UMETA(Hidden),
 };
 
@@ -79,8 +100,3 @@ enum class EUsageType : uint8
 	Self,
 	Opponent,
 };
-
-
-
-
-

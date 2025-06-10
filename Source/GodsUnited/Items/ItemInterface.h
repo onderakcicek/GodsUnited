@@ -6,6 +6,9 @@
 #include "UObject/Interface.h"
 #include "ItemInterface.generated.h"
 
+// forward declarations
+class UItemSubsystem;
+
 // This class does not need to be modified.
 UINTERFACE()
 class UItemInterface : public UInterface
@@ -21,6 +24,14 @@ class GODSUNITED_API IItemInterface
 public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void Use();
-	virtual void Use_Implementation() = 0;
+	void PrimaryUse();
+	virtual void PrimaryUse_Implementation() = 0;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void SecondaryUse();
+	virtual void SecondaryUse_Implementation() = 0;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UItemSubsystem* GetSubsystem();
+	virtual UItemSubsystem* GetSubsystem_Implementation() = 0;
 };

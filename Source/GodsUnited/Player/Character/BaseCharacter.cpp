@@ -40,12 +40,13 @@ void ABaseCharacter::BeginPlay()
 }
 
 // Called every frame
+// TODO: early exit and log
 void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	const bool bIsFollowing = IsFollowingPath();
 	auto MoveComp = GetMovementComponent();
-	
+
 	// If we're in action phase and following a path, handle movement
 	if (bIsFollowing && MoveComp && GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Action)
 	{
@@ -55,10 +56,10 @@ void ABaseCharacter::Tick(float DeltaTime)
 		if (HasReachedCurrentWaypoint())
 		{
 			// Check if this waypoint was created with a right click
-			if (CurrentWaypointIndex < Path.Num() && Path[CurrentWaypointIndex]->bIsRightClick)
+			if (CurrentWaypointIndex < Path.Num() && IsValid(Path[CurrentWaypointIndex]->GetItem().GetObject()))
 			{
 				// Trigger the right click action
-				TriggerRightClickAction();
+				TriggerItemAction();
 			}
 
 			// Move to the next waypoint
@@ -123,16 +124,15 @@ void ABaseCharacter::OnMouseClick(FHitResult HitResult, bool bIsRightClick)
 	{
 		// Create a waypoint at the hit location
 		FVector HitLocation = HitResult.Location;
-		AWaypoint* NewWaypoint = CreateWaypoint(HitLocation, bIsRightClick);
 
-		if (NewWaypoint)
+		if (AWaypoint* NewWaypoint = CreateWaypoint(HitLocation, nullptr))
 		{
 			AddWaypointToPath(NewWaypoint);
 		}
 	}
 }
 
-AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, bool bIsRightClick)
+AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item)
 {
 	// Adjust waypoint height to be at ground level or fixed height
 	// For top-down view, we'll place waypoints at a fixed height (slightly above zero)
@@ -147,8 +147,11 @@ AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, bool bIsRightClick)
 	if (Waypoint)
 	{
 		// Setup waypoint properties
-		Waypoint->bIsRightClick = bIsRightClick;
 		Waypoint->OwningPlayer = this;
+		if (Item)
+		{
+			Waypoint->SetItem(Item);
+		}
 
 		// Set index value here
 		Waypoint->PathIndex = Path.Num(); // Index will be the current size of the path array
@@ -157,7 +160,7 @@ AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, bool bIsRightClick)
 		UE_LOG(LogTemp, Warning, TEXT("Created waypoint %d at location %s. IsRightClick: %s"),
 		       Waypoint->PathIndex,
 		       *Location.ToString(),
-		       bIsRightClick ? TEXT("True") : TEXT("False"));
+		       Waypoint->HasItem() ? TEXT("True") : TEXT("False"));
 	}
 
 	return Waypoint;
@@ -176,7 +179,7 @@ void ABaseCharacter::AddWaypointToPath(AWaypoint* Waypoint)
 		// Log for debugging
 		UE_LOG(LogTemp, Display, TEXT("Added waypoint %d to path. IsRightClick: %s"),
 		       Waypoint->PathIndex,
-		       Waypoint->bIsRightClick ? TEXT("True") : TEXT("False"));
+		       Waypoint->HasItem() ? TEXT("True") : TEXT("False"));
 	}
 }
 
@@ -205,11 +208,11 @@ void ABaseCharacter::ResetPath()
 	UE_LOG(LogTemp, Display, TEXT("Character path has been reset"));
 }
 
-void ABaseCharacter::TriggerRightClickAction()
+void ABaseCharacter::TriggerItemAction()
 {
 	// Log that the action was triggered
 	UE_LOG(LogTemp, Display, TEXT("Right-click action triggered at waypoint %d"), CurrentWaypointIndex);
-	
+
 	// Call the blueprint event
 	TriggerAction();
 }
@@ -236,11 +239,11 @@ void ABaseCharacter::MoveToCurrentWaypoint()
 				FVector Direction = ToTarget.GetSafeNormal();
 				AddMovementInput(Direction, 1.0f);
 			}
-			
+
 			// Calculate rotation direction and rotate the character
 			if (!AdjustedTarget.Equals(CurrentLocation, 0.1f))
 			{
-				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();				
+				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();
 
 				// Debug: Draw arrow showing the rotation direction
 				FVector StartLocation = GetActorLocation() + FVector(0, 0, 50);
@@ -250,12 +253,12 @@ void ABaseCharacter::MoveToCurrentWaypoint()
 					GetWorld(),
 					StartLocation,
 					EndLocation,
-					100.0f,            // Arrow size
-					FColor::Orange,     // Arrow color
-					false,             // Persist lines (false = sadece bu frame göster)
-					-1.0f,             // Life time (sadece bu frame gözüksün)
-					0,                 // Depth priority
-					10.0f               // Line thickness
+					100.0f, // Arrow size
+					FColor::Orange, // Arrow color
+					false, // Persist lines (false = sadece bu frame göster)
+					-1.0f, // Life time (sadece bu frame gözüksün)
+					0, // Depth priority
+					10.0f // Line thickness
 				);
 			}
 

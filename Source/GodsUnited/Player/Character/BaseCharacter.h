@@ -6,7 +6,9 @@
 #include "GameFramework/Character.h"
 #include "BaseCharacter.generated.h"
 
+// Forward declarations
 class APvPGameMode;
+class IItemInterface;
 
 UCLASS(Blueprintable, BlueprintType)
 class GODSUNITED_API ABaseCharacter : public ACharacter
@@ -41,7 +43,7 @@ public:
 
 	// Create a waypoint at the specified location
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	class AWaypoint* CreateWaypoint(FVector Location, bool bIsRightClick);
+	class AWaypoint* CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item);
 
 	// Start following the created path
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
@@ -57,7 +59,7 @@ public:
 
 	// C++ implementation of the function to be called at right-click waypoints
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	void TriggerRightClickAction();
+	void TriggerItemAction();
 
 	// Add a waypoint to the character's path
 	UFUNCTION(BlueprintCallable, Category = "Navigation")

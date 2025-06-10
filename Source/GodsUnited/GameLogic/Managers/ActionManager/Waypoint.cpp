@@ -44,7 +44,7 @@ AWaypoint::AWaypoint()
     IndexText->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
     
     // Initialize properties
-    bIsRightClick = false;
+    Item = nullptr;
     PathIndex = 0;
     OwningPlayer = nullptr;
     LastKnownPathIndex = -1; // Initialize track variable
@@ -60,18 +60,18 @@ void AWaypoint::BeginPlay()
     if (DynamicMaterial)
     {
         // Set color based on click type (red for right click, blue for left click)
-        FLinearColor WaypointColor = bIsRightClick ? FLinearColor::Red : FLinearColor::Blue;
+        FLinearColor WaypointColor = HasItem() ? FLinearColor::Red : FLinearColor::Blue;
         DynamicMaterial->SetVectorParameterValue(TEXT("Color"), WaypointColor);
     }
     
     // Force update text immediately
-    LastKnownPathIndex = -1; // Ensure it's different than PathIndex to trigger update
+    LastKnownPathIndex = -1; // Ensure it's different from PathIndex to trigger update
     
     // Update text to show waypoint index
     FString IndexString = FString::Printf(TEXT("%d"), PathIndex);
     
     // Add additional text for right-click waypoints
-    if (bIsRightClick)
+    if (HasItem())
     {
         IndexString += TEXT(" (R)");
         IndexText->SetTextRenderColor(FColor::Red);
@@ -99,7 +99,7 @@ void AWaypoint::Tick(float DeltaTime)
         FString IndexString = FString::Printf(TEXT("%d"), PathIndex);
         
         // Add additional text for right-click waypoints
-        if (bIsRightClick)
+        if (HasItem())
         {
             IndexString += TEXT(" (R)");
             IndexText->SetTextRenderColor(FColor::Red);
@@ -113,4 +113,19 @@ void AWaypoint::Tick(float DeltaTime)
         
         UE_LOG(LogTemp, Display, TEXT("Waypoint %p updated text to show index: %d"), this, PathIndex);
     }
+}
+
+TScriptInterface<IItemInterface> AWaypoint::GetItem()
+{
+    return Item;
+}
+
+void AWaypoint::SetItem(TScriptInterface<IItemInterface> ItemToSet)
+{
+    Item = ItemToSet;
+}
+
+bool AWaypoint::HasItem()
+{
+    return IsValid(Item.GetObject());
 }

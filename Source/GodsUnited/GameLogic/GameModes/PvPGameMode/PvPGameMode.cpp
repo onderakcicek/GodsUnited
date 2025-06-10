@@ -28,19 +28,19 @@ void APvPGameMode::Tick(float DeltaTime)
         TArray<AActor*> FoundWaypoints;
         UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWaypoint::StaticClass(), FoundWaypoints);
         
-        int32 RightClickWaypoints = 0;
+        int32 ItemWayPoints = 0;
         for (AActor* Actor : FoundWaypoints)
         {
             AWaypoint* Waypoint = Cast<AWaypoint>(Actor);
-            if (Waypoint && Waypoint->bIsRightClick)
+            if (Waypoint && Waypoint->HasItem())
             {
-                RightClickWaypoints++;
+                ItemWayPoints++;
             }
         }
         
         GEngine->AddOnScreenDebugMessage(1, 0.0f, FColor::Cyan, 
             FString::Printf(TEXT("Total Waypoints: %d (Right-Click: %d)"), 
-            FoundWaypoints.Num(), RightClickWaypoints));
+            FoundWaypoints.Num(), ItemWayPoints));
         
         // Display controls hint
         GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Green, 

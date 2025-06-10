@@ -10,6 +10,7 @@
 class UStaticMeshComponent;
 class UTextRenderComponent;
 class USphereComponent;
+class IItemInterface;
 
 /**
  * Waypoint actor used for character path creation
@@ -22,14 +23,13 @@ class GODSUNITED_API AWaypoint : public AActor
 public:    
 	// Sets default values for this actor's properties
 	AWaypoint();
+	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
 
 	// Visual representation of the waypoint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UStaticMeshComponent* WaypointMesh;
-    
-	// Whether this waypoint was created with right click (triggers special action)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Waypoint")
-	bool bIsRightClick;
     
 	// The index of this waypoint in the path
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Waypoint")
@@ -47,6 +47,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class USphereComponent* CollisionSphere;
 
+	UFUNCTION(BlueprintCallable)
+	TScriptInterface<IItemInterface> GetItem();
+	
+	UFUNCTION(BlueprintCallable)
+	void SetItem(TScriptInterface<IItemInterface> ItemToSet);
+
+	UFUNCTION(BlueprintCallable)
+	bool HasItem();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,7 +63,9 @@ protected:
 	// Last known path index (for tracking changes)
 	UPROPERTY()
 	int32 LastKnownPathIndex;
-public:    
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+
+private:
+	// Whether this waypoint was created with an item (triggers special action)
+	UPROPERTY(EditAnywhere, Category = "Waypoint")
+	TScriptInterface<IItemInterface> Item;
 };
