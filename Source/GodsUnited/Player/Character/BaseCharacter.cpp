@@ -15,67 +15,68 @@
 // Sets default values
 ABaseCharacter::ABaseCharacter()
 {
-	// Set this character to call Tick() every frame
+	// Enable Tick() to be called every frame
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Initialize properties
+	// Initialize default values
 	CurrentWaypointIndex = 0;
 	bIsFollowingPath = false;
 	MovementTolerance = 10.0f;
 
-	//RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	// RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 }
 
-// Called when the game starts or when spawned
+// Called when the game starts or when this actor is spawned
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Get a reference to the game mode
+	// Cache a reference to the game mode
 	GameMode = Cast<APvPGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 
-	// Set a fixed Z position
+	// Lock the character to a fixed Z (height) position on spawn
 	FVector CurrentLocation = GetActorLocation();
 	SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, PlayerGroundOffset));
+
+	if (UCharacterMovementComponent* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent()))
+	{
+		MoveComp->BrakingDecelerationWalking = 0.f;
+		MoveComp->GroundFriction = 0.f;
+
+		//MoveComp->BrakingDecelerationWalking = 2048.f;  // veya sizin için uygun yüksek değer
+		//MoveComp->GroundFriction = 8.f;                 // default genelde 8–12 arasındadır
+	}
 }
 
 // Called every frame
-// TODO: early exit and log
 void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	const bool bIsFollowing = IsFollowingPath();
-	auto MoveComp = GetMovementComponent();
 
-	// If we're in action phase and following a path, handle movement
-	if (bIsFollowing && MoveComp && GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Action)
+	// During Action phase while following a path, process movement
+	if (bIsFollowingPath && GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Action)
 	{
-		MoveToCurrentWaypoint();
-
-		// Check if we've reached the current waypoint
-		if (HasReachedCurrentWaypoint())
+		// 1) Skip already-reached waypoints and trigger any item actions
+		while (Path.IsValidIndex(CurrentWaypointIndex) && HasReachedCurrentWaypoint())
 		{
-			// Check if this waypoint was created with a right click
-			//if (CurrentWaypointIndex < Path.Num() && IsValid(Path[CurrentWaypointIndex]->GetItem().GetObject()))
-			if (CurrentWaypointIndex < Path.Num() && Path[CurrentWaypointIndex]->HasItem())
+			OnWaypointReached();
+			if (!bIsFollowingPath)
 			{
-				// Trigger the right click action
-				TriggerItemAction();
+				return; // path ended
 			}
-
-			// Move to the next waypoint
-			MoveToNextWaypoint();
 		}
+
+		// 2) Move towards the current target waypoint
+		MoveToCurrentWaypoint();
 	}
 
-	// Debug visualization: Draw lines between waypoints
+	// Debug visualization: draw lines between waypoints
 	if (Path.Num() > 1)
 	{
-		for (int32 i = 0; i < Path.Num() - 1; i++)
+		for (int32 i = 0; i < Path.Num() - 1; ++i)
 		{
 			if (Path[i] && Path[i + 1])
 			{
-				// Draw a line between waypoints
 				DrawDebugLine(
 					GetWorld(),
 					Path[i]->GetActorLocation(),
@@ -89,10 +90,9 @@ void ABaseCharacter::Tick(float DeltaTime)
 			}
 		}
 
-		// Highlight current waypoint if following path
-		if (bIsFollowingPath && CurrentWaypointIndex < Path.Num() && Path[CurrentWaypointIndex])
+		// Highlight current waypoint if following
+		if (bIsFollowingPath && Path.IsValidIndex(CurrentWaypointIndex) && Path[CurrentWaypointIndex])
 		{
-			// Draw sphere around current target waypoint
 			DrawDebugSphere(
 				GetWorld(),
 				Path[CurrentWaypointIndex]->GetActorLocation(),
@@ -108,24 +108,21 @@ void ABaseCharacter::Tick(float DeltaTime)
 	}
 }
 
-// Called to bind functionality to input
+// Bind gameplay inputs
 void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	// Input bindings would go here
-	// For example: PlayerInputComponent->BindAction("LeftClick", IE_Pressed, this, &ABaseCharacter::OnLeftClick);
-	// Note: Mouse click events are typically handled in the player controller
+	// Example binding (mouse clicks are typically handled in the PlayerController)
+	// PlayerInputComponent->BindAction("LeftClick", IE_Pressed, this, &ABaseCharacter::OnLeftClick);
 }
 
+// Handle mouse clicks to place waypoints in Preparation phase
 void ABaseCharacter::OnMouseClick(FHitResult HitResult, FString ItemId)
 {
-	// Only create waypoints in preparation phase
 	if (GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Preparation)
 	{
-		// Create a waypoint at the hit location
 		FVector HitLocation = HitResult.Location;
-
 		if (AWaypoint* NewWaypoint = CreateWaypoint(HitLocation, ItemId))
 		{
 			AddWaypointToPath(NewWaypoint);
@@ -133,197 +130,151 @@ void ABaseCharacter::OnMouseClick(FHitResult HitResult, FString ItemId)
 	}
 }
 
-//AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item)
+// Spawn a new waypoint actor at the specified location and optional item
 AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, FString Item)
 {
-	// Adjust waypoint height to be at ground level or fixed height
-	// For top-down view, we'll place waypoints at a fixed height (slightly above zero)
-	//Location.Z = 10.0f;
-
-	// Spawn a waypoint actor
+	// Configure spawn parameters
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
 
 	AWaypoint* Waypoint = GetWorld()->SpawnActor<AWaypoint>(Location, FRotator::ZeroRotator, SpawnParams);
-
 	if (Waypoint)
 	{
-		// Setup waypoint properties
 		Waypoint->OwningPlayer = this;
 		if (!Item.IsEmpty())
 		{
 			Waypoint->SetItem(Item);
 		}
-
-		// Set index value here
-		Waypoint->PathIndex = Path.Num(); // Index will be the current size of the path array
-
-		// Log for debugging
-		UE_LOG(LogTemp, Warning, TEXT("Created waypoint %d at location %s. IsRightClick: %s"),
+		Waypoint->PathIndex = Path.Num();
+		UE_LOG(LogTemp, Warning, TEXT("Created waypoint %d at %s. HasItem: %s"),
 		       Waypoint->PathIndex,
 		       *Location.ToString(),
 		       Waypoint->HasItem() ? TEXT("True") : TEXT("False"));
 	}
-
 	return Waypoint;
 }
 
+// Add a waypoint to the path array
 void ABaseCharacter::AddWaypointToPath(AWaypoint* Waypoint)
 {
-	if (Waypoint)
-	{
-		// Set the correct path index for this waypoint
-		Waypoint->PathIndex = Path.Num();
-
-		// Add to path array
-		Path.Add(Waypoint);
-
-		// Log for debugging
-		UE_LOG(LogTemp, Display, TEXT("Added waypoint %d to path. IsRightClick: %s"),
-		       Waypoint->PathIndex,
-		       Waypoint->HasItem() ? TEXT("True") : TEXT("False"));
-	}
+	if (!Waypoint) return;
+	Waypoint->PathIndex = Path.Num();
+	Path.Add(Waypoint);
+	UE_LOG(LogTemp, Display, TEXT("Added waypoint %d to path. HasItem: %s"),
+	       Waypoint->PathIndex,
+	       Waypoint->HasItem() ? TEXT("True") : TEXT("False"));
 }
 
+// Begin moving along the placed waypoints
 void ABaseCharacter::StartFollowingPath()
 {
 	if (Path.Num() > 0)
 	{
 		CurrentWaypointIndex = 0;
 		bIsFollowingPath = true;
-
-		UE_LOG(LogTemp, Display, TEXT("Character started following path with %d waypoints"), Path.Num());
+		UE_LOG(LogTemp, Display, TEXT("Started following path with %d waypoints"), Path.Num());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Attempted to follow path, but no waypoints exist"));
+		UE_LOG(LogTemp, Warning, TEXT("Cannot follow path: no waypoints set"));
 	}
 }
 
+// Clear the current path and reset state
 void ABaseCharacter::ResetPath()
 {
-	// Clear the path array
 	Path.Empty();
 	CurrentWaypointIndex = 0;
 	bIsFollowingPath = false;
-
-	UE_LOG(LogTemp, Display, TEXT("Character path has been reset"));
+	UE_LOG(LogTemp, Display, TEXT("Path has been reset"));
 }
 
+// Trigger the action associated with the current waypoint item
 void ABaseCharacter::TriggerItemAction()
 {
-	UE_LOG(LogTemp, Display, TEXT("Triggering item action..."));
+	UE_LOG(LogTemp, Display, TEXT("Triggering item action at waypoint"));
 	TriggerAction(Path[CurrentWaypointIndex]->GetItem());
 }
 
+// Default implementation for custom actions (override in subclasses)
 void ABaseCharacter::TriggerAction_Implementation(const FString& ItemId)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Default TriggerAction called with: %s"), *ItemId);
-}	
+	UE_LOG(LogTemp, Warning, TEXT("Default TriggerAction called with item: %s"), *ItemId);
+}
 
+// Move towards the current waypoint
 void ABaseCharacter::MoveToCurrentWaypoint()
 {
-	if (Path.Num() > 0 && CurrentWaypointIndex < Path.Num())
+	if (!Path.IsValidIndex(CurrentWaypointIndex))
 	{
-		const AWaypoint* CurrentWaypoint = Path[CurrentWaypointIndex];
+		return;
+	}
 
-		if (CurrentWaypoint)
-		{
-			// Current position and target position
-			FVector CurrentLocation = GetActorLocation();
-			FVector TargetLocation = CurrentWaypoint->GetActorLocation();
+	FVector CurrentLocation = GetActorLocation();
+	FVector TargetLocation = Path[CurrentWaypointIndex]->GetActorLocation();
 
-			// Adjust target to only move in the horizontal plane
-			FVector AdjustedTarget = FVector(TargetLocation.X, TargetLocation.Y, CurrentLocation.Z);
+	// Only consider horizontal movement
+	FVector ToTarget = TargetLocation - CurrentLocation;
+	ToTarget.Z = 0;
 
-			//UAIBlueprintHelperLibrary::SimpleMoveToLocation(GetController(), AdjustedTarget);
-			FVector ToTarget = TargetLocation - GetActorLocation();
-			if (ToTarget.Size() > 10.f)
-			{
-				FVector Direction = ToTarget.GetSafeNormal();
-				AddMovementInput(Direction, 1.0f);
-			}
+	float DistanceToTarget = ToTarget.Size();
 
-			// Calculate rotation direction and rotate the character
-			if (!AdjustedTarget.Equals(CurrentLocation, 0.1f))
-			{
-				FVector Direction = (AdjustedTarget - CurrentLocation).GetSafeNormal();
+	// Only move if outside tolerance to avoid jitter
+	if (DistanceToTarget > MovementTolerance)
+	{
+		FVector Direction = ToTarget.GetSafeNormal();
+		AddMovementInput(Direction, 1.0f);
 
-				// Debug: Draw arrow showing the rotation direction
-				FVector StartLocation = GetActorLocation() + FVector(0, 0, 50);
-				FVector EndLocation = StartLocation + Direction * 200.0f;
-
-				DrawDebugDirectionalArrow(
-					GetWorld(),
-					StartLocation,
-					EndLocation,
-					100.0f, // Arrow size
-					FColor::Orange, // Arrow color
-					false, // Persist lines (false = sadece bu frame göster)
-					-1.0f, // Life time (sadece bu frame gözüksün)
-					0, // Depth priority
-					10.0f // Line thickness
-				);
-			}
-
-			if (CurrentWaypointIndex > 0 && CurrentWaypointIndex < Path.Num())
-			{
-				AWaypoint* Previous = Path[CurrentWaypointIndex - 1];
-				DrawDebugDirectionalArrow(
-					GetWorld(),
-					Previous->GetActorLocation(),
-					TargetLocation,
-					20.0f, // Arrow size
-					FColor::Blue,
-					false,
-					-1.0f,
-					0,
-					8.0f // Thickness
-				);
-			}
-		}
+		// Optional: draw debug arrow for facing direction
+		FVector ArrowStart = CurrentLocation + FVector(0, 0, 50);
+		FVector ArrowEnd = ArrowStart + Direction * 200.0f;
+		DrawDebugDirectionalArrow(
+			GetWorld(),
+			ArrowStart,
+			ArrowEnd,
+			100.0f,
+			FColor::Orange,
+			false,
+			-1.0f,
+			0,
+			10.0f
+		);
 	}
 }
 
+// Check if the character is within tolerance of the waypoint (XY-plane only)
 bool ABaseCharacter::HasReachedCurrentWaypoint() const
 {
-	if (Path.Num() > 0 && CurrentWaypointIndex < Path.Num())
+	if (!Path.IsValidIndex(CurrentWaypointIndex))
 	{
-		AWaypoint* CurrentWaypoint = Path[CurrentWaypointIndex];
-
-		if (CurrentWaypoint)
-		{
-			// Calculate horizontal distance to waypoint (ignore Z axis for distance calculation)
-			FVector CharacterLocation = GetActorLocation();
-			FVector WaypointLocation = CurrentWaypoint->GetActorLocation();
-
-			// Ignore Z axis for distance calculation
-			CharacterLocation.Z = 0;
-			WaypointLocation.Z = 0;
-
-			// Calculate only XY distance
-			float Distance = FVector::Distance(CharacterLocation, WaypointLocation);
-			UE_LOG(LogTemp, Display, TEXT("Current Distance: %f"), Distance);
-			// Return true if within tolerance (only consider XY distance)
-			return Distance <= MovementTolerance;
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Invalid waypoint index: %d"), CurrentWaypointIndex);
+		return false;
 	}
 
-	return false;
+	FVector CharLoc = GetActorLocation();
+	FVector WaypointLoc = Path[CurrentWaypointIndex]->GetActorLocation();
+
+	CharLoc.Z = 0;
+	WaypointLoc.Z = 0;
+
+	float Distance = FVector::Distance(CharLoc, WaypointLoc);
+	UE_LOG(LogTemp, Display, TEXT("Distance to waypoint: %f, Movement Tolerance: %f"), Distance, MovementTolerance);
+	return Distance <= MovementTolerance;
 }
 
+// Advance to the next waypoint or end path following
 void ABaseCharacter::MoveToNextWaypoint()
 {
 	CurrentWaypointIndex++;
-
-	// Check if we've reached the end of the path
 	if (CurrentWaypointIndex >= Path.Num())
 	{
-		// We've completed the path
+		// Stop following and immediately clear any residual movement
 		bIsFollowingPath = false;
-		UE_LOG(LogTemp, Display, TEXT("Character has completed the path"));
+		if (auto* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent()))
+		{
+			MoveComp->StopMovementImmediately();
+		}
 
-		// Optional: Switch back to preparation phase
 		if (GameMode)
 		{
 			// Uncomment to automatically switch back to preparation phase
@@ -332,6 +283,52 @@ void ABaseCharacter::MoveToNextWaypoint()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Display, TEXT("Moving to waypoint %d"), CurrentWaypointIndex);
+		UE_LOG(LogTemp, Display, TEXT("Advancing to waypoint %d"), CurrentWaypointIndex);
+	}
+}
+
+// Handles logic when a waypoint is reached
+void ABaseCharacter::OnWaypointReached()
+{
+	// Ensure current waypoint index is valid
+	if (!Path.IsValidIndex(CurrentWaypointIndex))
+	{
+		return;
+	}
+
+	// Trigger item action if present at this waypoint
+	if (Path[CurrentWaypointIndex]->HasItem())
+	{
+		TriggerItemAction();
+	}
+
+	// Advance to the next waypoint
+	MoveToNextWaypoint();
+	if (!bIsFollowingPath)
+	{
+		return;
+	}
+
+	// Redirect existing velocity toward the new waypoint without changing speed
+	if (auto* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent()))
+	{
+		float Speed = MoveComp->Velocity.Size();
+		if (Speed <= KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		// Compute vector to next waypoint (XY-plane)
+		FVector ToTarget = Path[CurrentWaypointIndex]->GetActorLocation() - GetActorLocation();
+		ToTarget.Z = 0;
+
+		// Avoid redirect if already very close to avoid jitter
+		if (ToTarget.SizeSquared() <= FMath::Square(MovementTolerance))
+		{
+			return;
+		}
+
+		FVector Direction = ToTarget.GetSafeNormal();
+		MoveComp->Velocity = Direction * Speed;
 	}
 }

@@ -100,4 +100,5 @@ private:
 
 	// Move to the next waypoint in the path
 	void MoveToNextWaypoint();
+	void OnWaypointReached();
 };
