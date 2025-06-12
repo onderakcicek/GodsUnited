@@ -48,10 +48,12 @@ public:
 	class USphereComponent* CollisionSphere;
 
 	UFUNCTION(BlueprintCallable)
-	TScriptInterface<IItemInterface> GetItem();
+	FString GetItem();
+	//TScriptInterface<IItemInterface> GetItem();
 	
 	UFUNCTION(BlueprintCallable)
-	void SetItem(TScriptInterface<IItemInterface> ItemToSet);
+	void SetItem(FString ItemToSet);
+	//void SetItem(TScriptInterface<IItemInterface> ItemToSet);
 
 	UFUNCTION(BlueprintCallable)
 	bool HasItem();
@@ -67,5 +69,6 @@ protected:
 private:
 	// Whether this waypoint was created with an item (triggers special action)
 	UPROPERTY(EditAnywhere, Category = "Waypoint")
-	TScriptInterface<IItemInterface> Item;
+	FString Item;
+	//TScriptInterface<IItemInterface> Item;
 };

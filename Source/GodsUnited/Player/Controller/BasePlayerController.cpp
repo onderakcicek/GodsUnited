@@ -43,26 +43,26 @@ void ABasePlayerController::Tick(float DeltaTime)
 void ABasePlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
-    
+
     // Bind mouse click events
-    InputComponent->BindAction("LeftClick", IE_Pressed, this, &ABasePlayerController::OnLeftMouseClick);
+    /*InputComponent->BindAction("LeftClick", IE_Pressed, this, &ABasePlayerController::OnLeftMouseClick);
     InputComponent->BindAction("RightClick", IE_Pressed, this, &ABasePlayerController::OnRightMouseClick);
     
     // Bind phase toggle to a key (e.g., Space)
-    InputComponent->BindAction("TogglePhase", IE_Pressed, this, &ABasePlayerController::ToggleGamePhase);
+    InputComponent->BindAction("TogglePhase", IE_Pressed, this, &ABasePlayerController::ToggleGamePhase);*/
 }
 
 void ABasePlayerController::OnLeftMouseClick()
 {
-    ProcessMouseClick(false);
+    ProcessDrop("");
 }
 
 void ABasePlayerController::OnRightMouseClick()
 {
-    ProcessMouseClick(true);
+    ProcessDrop("true");
 }
 
-void ABasePlayerController::ProcessMouseClick(bool bIsRightClick)
+void ABasePlayerController::ProcessDrop(FString ItemId)
 {
     // Only process clicks in preparation phase
     if (GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Preparation)
@@ -73,11 +73,11 @@ void ABasePlayerController::ProcessMouseClick(bool bIsRightClick)
             if (PlayerCharacter)
             {
                 // Forward the click to the character
-                PlayerCharacter->OnMouseClick(HitResult, bIsRightClick);
+                PlayerCharacter->OnMouseClick(HitResult, ItemId);
                 
                 // Log for debugging
-                UE_LOG(LogTemp, Display, TEXT("%s click detected at location: %s"), 
-                    bIsRightClick ? TEXT("Right") : TEXT("Left"),
+                UE_LOG(LogTemp, Display, TEXT("%s detected at location: %s"), 
+                    *ItemId,
                     *HitResult.Location.ToString());
             }
         }

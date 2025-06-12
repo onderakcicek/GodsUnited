@@ -39,11 +39,12 @@ public:
 
 	// Called when player clicks in the world
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	void OnMouseClick(FHitResult HitResult, bool bIsRightClick);
+	void OnMouseClick(FHitResult HitResult, FString ItemId);
 
 	// Create a waypoint at the specified location
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	class AWaypoint* CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item);
+	//class AWaypoint* CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item);
+	class AWaypoint* CreateWaypoint(FVector Location, FString Item);
 
 	// Start following the created path
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
@@ -54,8 +55,9 @@ public:
 	void ResetPath();
 
 	// Function to be called when passing through a right-click waypoint
-	UFUNCTION(BlueprintImplementableEvent, Category = "Actions")
-	void TriggerAction();
+	UFUNCTION(BlueprintNativeEvent, Category = "Actions")
+	void TriggerAction(const FString& ItemId);
+	virtual void TriggerAction_Implementation(const FString& ItemId);
 
 	// C++ implementation of the function to be called at right-click waypoints
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
@@ -73,6 +75,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	bool IsFollowingPath() const { return bIsFollowingPath; }
 
+	// Movement tolerance (how close to get to a waypoint)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MovementTolerance;
+
 private:
 	// Array of waypoints that form the character's path
 	UPROPERTY()
@@ -85,10 +91,6 @@ private:
 	// Whether the character is currently following the path
 	UPROPERTY()
 	bool bIsFollowingPath;
-
-	// Movement tolerance (how close to get to a waypoint)
-	UPROPERTY()
-	float MovementTolerance;
 
 	// Move towards the current waypoint
 	void MoveToCurrentWaypoint();

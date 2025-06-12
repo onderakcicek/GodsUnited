@@ -54,5 +54,5 @@ private:
 	bool GetHitResultUnderCursor(FHitResult& HitResult) const;
     
 	// Process mouse click and forward to character
-	void ProcessMouseClick(bool bIsRightClick);
+	void ProcessDrop(FString ItemId);
 };

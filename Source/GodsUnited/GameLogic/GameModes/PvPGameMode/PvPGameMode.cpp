@@ -118,7 +118,7 @@ void APvPGameMode::StartPreparationPhase()
             {
                 // Move character back up for planning (bird's eye view)
                 FVector CurrentLocation = Character->GetActorLocation();
-                Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
+                //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
                 
                 // Reset the path
                 Character->ResetPath();

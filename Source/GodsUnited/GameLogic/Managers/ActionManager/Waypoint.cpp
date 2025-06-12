@@ -115,17 +115,20 @@ void AWaypoint::Tick(float DeltaTime)
     }
 }
 
-TScriptInterface<IItemInterface> AWaypoint::GetItem()
+//TScriptInterface<IItemInterface> AWaypoint::GetItem()
+FString AWaypoint::GetItem()
 {
     return Item;
 }
 
-void AWaypoint::SetItem(TScriptInterface<IItemInterface> ItemToSet)
+//void AWaypoint::SetItem(TScriptInterface<IItemInterface> ItemToSet)
+void AWaypoint::SetItem(FString ItemToSet)
 {
     Item = ItemToSet;
 }
 
 bool AWaypoint::HasItem()
 {
-    return IsValid(Item.GetObject());
+    return !Item.IsEmpty();
+    //return IsValid(Item.GetObject());
 }

@@ -21,7 +21,7 @@ ABaseCharacter::ABaseCharacter()
 	// Initialize properties
 	CurrentWaypointIndex = 0;
 	bIsFollowingPath = false;
-	MovementTolerance = 100.0f;
+	MovementTolerance = 10.0f;
 
 	//RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 }
@@ -56,7 +56,8 @@ void ABaseCharacter::Tick(float DeltaTime)
 		if (HasReachedCurrentWaypoint())
 		{
 			// Check if this waypoint was created with a right click
-			if (CurrentWaypointIndex < Path.Num() && IsValid(Path[CurrentWaypointIndex]->GetItem().GetObject()))
+			//if (CurrentWaypointIndex < Path.Num() && IsValid(Path[CurrentWaypointIndex]->GetItem().GetObject()))
+			if (CurrentWaypointIndex < Path.Num() && Path[CurrentWaypointIndex]->HasItem())
 			{
 				// Trigger the right click action
 				TriggerItemAction();
@@ -117,7 +118,7 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// Note: Mouse click events are typically handled in the player controller
 }
 
-void ABaseCharacter::OnMouseClick(FHitResult HitResult, bool bIsRightClick)
+void ABaseCharacter::OnMouseClick(FHitResult HitResult, FString ItemId)
 {
 	// Only create waypoints in preparation phase
 	if (GameMode && GameMode->GetCurrentPhase() == EPvPGamePhase::Preparation)
@@ -125,14 +126,15 @@ void ABaseCharacter::OnMouseClick(FHitResult HitResult, bool bIsRightClick)
 		// Create a waypoint at the hit location
 		FVector HitLocation = HitResult.Location;
 
-		if (AWaypoint* NewWaypoint = CreateWaypoint(HitLocation, nullptr))
+		if (AWaypoint* NewWaypoint = CreateWaypoint(HitLocation, ItemId))
 		{
 			AddWaypointToPath(NewWaypoint);
 		}
 	}
 }
 
-AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item)
+//AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item)
+AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, FString Item)
 {
 	// Adjust waypoint height to be at ground level or fixed height
 	// For top-down view, we'll place waypoints at a fixed height (slightly above zero)
@@ -148,7 +150,7 @@ AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, TScriptInterface<IIt
 	{
 		// Setup waypoint properties
 		Waypoint->OwningPlayer = this;
-		if (Item)
+		if (!Item.IsEmpty())
 		{
 			Waypoint->SetItem(Item);
 		}
@@ -210,12 +212,14 @@ void ABaseCharacter::ResetPath()
 
 void ABaseCharacter::TriggerItemAction()
 {
-	// Log that the action was triggered
-	UE_LOG(LogTemp, Display, TEXT("Right-click action triggered at waypoint %d"), CurrentWaypointIndex);
-
-	// Call the blueprint event
-	TriggerAction();
+	UE_LOG(LogTemp, Display, TEXT("Triggering item action..."));
+	TriggerAction(Path[CurrentWaypointIndex]->GetItem());
 }
+
+void ABaseCharacter::TriggerAction_Implementation(const FString& ItemId)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Default TriggerAction called with: %s"), *ItemId);
+}	
 
 void ABaseCharacter::MoveToCurrentWaypoint()
 {
