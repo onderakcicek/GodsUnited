@@ -84,6 +84,8 @@ private:
 	UPROPERTY()
 	TArray<class AWaypoint*> Path;
 
+	void ProcessMovement();
+
 	// Current waypoint target index
 	UPROPERTY()
 	int32 CurrentWaypointIndex;
