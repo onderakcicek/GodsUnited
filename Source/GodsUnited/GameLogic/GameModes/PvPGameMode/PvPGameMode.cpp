@@ -97,6 +97,9 @@ void APvPGameMode::StartPreparationPhase()
     if (CurrentPhase != EPvPGamePhase::Preparation)
     {
         CurrentPhase = EPvPGamePhase::Preparation;
+
+        bPlayerLastCardFinished = false;
+        bPlayerMovementFinished = false;
         
         // Clear all existing waypoints when returning to preparation phase
         TArray<AActor*> FoundWaypoints;
@@ -129,5 +132,13 @@ void APvPGameMode::StartPreparationPhase()
         OnGamePhaseChanged(CurrentPhase);
         
         UE_LOG(LogTemp, Display, TEXT("Preparation Phase Started"));
+    }
+}
+
+void APvPGameMode::DecideSwitchingToPreparationPhase()
+{
+    if (bPlayerMovementFinished && bPlayerLastCardFinished)
+    {
+        StartPreparationPhase();
     }
 }

@@ -46,6 +46,16 @@ void ABaseCharacter::Tick(float DeltaTime)
     ProcessMovement();
 }
 
+AWaypoint* ABaseCharacter::GetLastWaypoint()
+{
+    if (Path.IsValidIndex(Path.Num() - 1))
+    {
+        return Path[Path.Num() - 1];
+    }
+    
+    return nullptr;
+}
+
 // Main movement logic separated from Tick
 void ABaseCharacter::ProcessMovement()
 {
@@ -269,6 +279,8 @@ void ABaseCharacter::MoveToNextWaypoint()
         {
             MoveComp->StopMovementImmediately();
         }
+
+        MovementCompletedHandle.Broadcast(this);
     }
 }
 

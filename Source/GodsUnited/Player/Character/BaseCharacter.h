@@ -10,6 +10,8 @@
 class APvPGameMode;
 class IItemInterface;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementCompletedDelegate, ABaseCharacter*, Character);
+
 UCLASS(Blueprintable, BlueprintType)
 class GODSUNITED_API ABaseCharacter : public ACharacter
 {
@@ -71,14 +73,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	const TArray<class AWaypoint*>& GetPath() const { return Path; }
 
-	// Check if the character is currently following a path
-	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	bool IsFollowingPath() const { return bIsFollowingPath; }
-
 	// Movement tolerance (how close to get to a waypoint)
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MovementTolerance;
 
+	UPROPERTY(BlueprintAssignable)
+	FMovementCompletedDelegate MovementCompletedHandle;
+	
+	// Check if the character is currently following a path
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	bool IsFollowingPath() const { return bIsFollowingPath; }
+	
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	bool HasMovedToFinalWaypoint() const { return CurrentWaypointIndex >= Path.Num(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	AWaypoint* GetLastWaypoint();
+	
 private:
 	// Array of waypoints that form the character's path
 	UPROPERTY()

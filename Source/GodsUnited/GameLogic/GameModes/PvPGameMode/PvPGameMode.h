@@ -44,6 +44,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bShowDebugInfo;
 
+protected:
+	
+	UPROPERTY(BlueprintReadWrite, EditInstanceOnly)
+	bool bPlayerLastCardFinished = false;
+
+	UPROPERTY(BlueprintReadWrite, EditInstanceOnly)
+	bool bPlayerMovementFinished = false;
+
+	UFUNCTION(BlueprintCallable)
+	void DecideSwitchingToPreparationPhase();
+	
 private:
 	// Current game phase
 	UPROPERTY(VisibleAnywhere, Category = "Game")
