@@ -60,79 +60,78 @@ void APvPGameMode::BeginPlay()
 
 void APvPGameMode::StartActionPhase()
 {
-    if (CurrentPhase != EPvPGamePhase::Action)
+    if (CurrentPhase == EPvPGamePhase::Action) return;
+    
+    CurrentPhase = EPvPGamePhase::Action;
+        
+    // Find all player characters and tell them to start following their paths
+    TArray<AActor*> FoundCharacters;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseCharacter::StaticClass(), FoundCharacters);
+        
+    for (AActor* Actor : FoundCharacters)
     {
-        CurrentPhase = EPvPGamePhase::Action;
-        
-        // Find all player characters and tell them to start following their paths
-        TArray<AActor*> FoundCharacters;
-        UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseCharacter::StaticClass(), FoundCharacters);
-        
-        for (AActor* Actor : FoundCharacters)
+        ABaseCharacter* Character = Cast<ABaseCharacter>(Actor);
+        if (Character)
         {
-            ABaseCharacter* Character = Cast<ABaseCharacter>(Actor);
-            if (Character)
-            {
-                // Move character to ground level for action phase
-                FVector CurrentLocation = Character->GetActorLocation();
-                //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
+            // Move character to ground level for action phase
+            FVector CurrentLocation = Character->GetActorLocation();
+            //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
                 
-                // Enable gravity for action phase (character will follow ground)
-                //Character->EnableGravity();
+            // Enable gravity for action phase (character will follow ground)
+            //Character->EnableGravity();
                 
-                // Start following the path
-                Character->StartFollowingPath();
-            }
+            // Start following the path
+            Character->StartFollowingPath();
         }
-        
-        // Call the blueprint event
-        OnGamePhaseChanged(CurrentPhase);
-        
-        UE_LOG(LogTemp, Display, TEXT("Action Phase Started"));
     }
+        
+    // Call the blueprint event
+    OnGamePhaseChanged(CurrentPhase);
+        
+    UE_LOG(LogTemp, Display, TEXT("Action Phase Started"));
 }
 
 void APvPGameMode::StartPreparationPhase()
 {
-    if (CurrentPhase != EPvPGamePhase::Preparation)
-    {
-        CurrentPhase = EPvPGamePhase::Preparation;
+    if (CurrentPhase == EPvPGamePhase::Preparation) return;
 
-        bPlayerLastCardFinished = false;
-        bPlayerMovementFinished = false;
+    CurrentPhase = EPvPGamePhase::Preparation;
+
+    bPlayerLastCardFinished = false;
+    bPlayerMovementFinished = false;
         
-        // Clear all existing waypoints when returning to preparation phase
-        TArray<AActor*> FoundWaypoints;
-        UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWaypoint::StaticClass(), FoundWaypoints);
+    // Clear all existing waypoints when returning to preparation phase
+    TArray<AActor*> FoundWaypoints;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWaypoint::StaticClass(), FoundWaypoints);
         
-        for (AActor* Actor : FoundWaypoints)
-        {
-            Actor->Destroy();
-        }
-        
-        // Reset all player characters
-        TArray<AActor*> FoundCharacters;
-        UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseCharacter::StaticClass(), FoundCharacters);
-        
-        for (AActor* Actor : FoundCharacters)
-        {
-            ABaseCharacter* Character = Cast<ABaseCharacter>(Actor);
-            if (Character)
-            {
-                // Move character back up for planning (bird's eye view)
-                FVector CurrentLocation = Character->GetActorLocation();
-                //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
-                
-                // Reset the path
-                Character->ResetPath();
-            }
-        }
-        
-        // Call the blueprint event
-        OnGamePhaseChanged(CurrentPhase);
-        
-        UE_LOG(LogTemp, Display, TEXT("Preparation Phase Started"));
+    for (AActor* Actor : FoundWaypoints)
+    {
+        Actor->Destroy();
     }
+        
+    // Reset all player characters
+    TArray<AActor*> FoundCharacters;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseCharacter::StaticClass(), FoundCharacters);
+        
+    for (AActor* Actor : FoundCharacters)
+    {
+        ABaseCharacter* Character = Cast<ABaseCharacter>(Actor);
+        if (Character)
+        {
+            // Move character back up for planning (bird's eye view)
+            FVector CurrentLocation = Character->GetActorLocation();
+            //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
+                
+            // Reset the path
+            Character->ResetPath();
+            SetCharacterNewRoundEnergy(Character);
+        }
+    }
+        
+    // Call the blueprint event
+    OnGamePhaseChanged(CurrentPhase);
+        
+    UE_LOG(LogTemp, Display, TEXT("Preparation Phase Started"));
 }
 
 void APvPGameMode::DecideSwitchingToPreparationPhase()
@@ -141,4 +140,9 @@ void APvPGameMode::DecideSwitchingToPreparationPhase()
     {
         StartPreparationPhase();
     }
+}
+
+void APvPGameMode::SetCharacterNewRoundEnergy(ABaseCharacter* Character)
+{
+    
 }

@@ -7,6 +7,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "PvPGameMode.generated.h"
 
+class ABaseCharacter;
+
 /**
  * Two-phase game mode that switches between preparation and action
  */
@@ -54,6 +56,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void DecideSwitchingToPreparationPhase();
+	
+	UFUNCTION(BlueprintCallable)
+	void SetCharacterNewRoundEnergy(ABaseCharacter* Character);
 	
 private:
 	// Current game phase

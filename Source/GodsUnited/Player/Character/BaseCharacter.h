@@ -43,6 +43,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void OnMouseClick(FHitResult HitResult, FString ItemId);
 
+	//-----------------------------------------------------------------------
+	// WAYPOINT SYSTEM
+	//-----------------------------------------------------------------------
+	
 	// Create a waypoint at the specified location
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	//class AWaypoint* CreateWaypoint(FVector Location, TScriptInterface<IItemInterface> Item);
@@ -89,8 +93,20 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	AWaypoint* GetLastWaypoint();
+
+	//-----------------------------------------------------------------------
+	// ENERGY SYSTEM
+	//-----------------------------------------------------------------------
+
+	void SetEnergy(float EnergyToSet);
+	void SetGenerativeEnergy(float EnergyToSet);
+
 	
 private:
+	//-----------------------------------------------------------------------
+	// WAYPOINT SYSTEM
+	//-----------------------------------------------------------------------
+	
 	// Array of waypoints that form the character's path
 	UPROPERTY()
 	TArray<class AWaypoint*> Path;
@@ -114,4 +130,18 @@ private:
 	// Move to the next waypoint in the path
 	void MoveToNextWaypoint();
 	void OnWaypointReached();
+
+	//-----------------------------------------------------------------------
+	// ENERGY SYSTEM
+	//-----------------------------------------------------------------------
+	constexpr float EnergyIncrementPerRound = 3;
+	constexpr float MaxEnergy = 10;
+	float Energy = 3;
+	float GenerativeEnergy = 0;
+
+	// Calculate movement cost based on action queue
+	float CalculateMovementCost(const FVector& InputLocation);
+
+	void SpendEnergyToMove(float MoveCost);
+	
 };
