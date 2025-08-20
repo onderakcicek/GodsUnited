@@ -12,6 +12,12 @@ class IItemInterface;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementCompletedDelegate, ABaseCharacter*, Character);
 
+namespace PlayerCharacter
+{
+	constexpr float EnergyIncrementPerRound = 3;
+	constexpr float MaxEnergy = 10;
+}
+
 UCLASS(Blueprintable, BlueprintType)
 class GODSUNITED_API ABaseCharacter : public ACharacter
 {
@@ -134,8 +140,6 @@ private:
 	//-----------------------------------------------------------------------
 	// ENERGY SYSTEM
 	//-----------------------------------------------------------------------
-	constexpr float EnergyIncrementPerRound = 3;
-	constexpr float MaxEnergy = 10;
 	float Energy = 3;
 	float GenerativeEnergy = 0;
 
