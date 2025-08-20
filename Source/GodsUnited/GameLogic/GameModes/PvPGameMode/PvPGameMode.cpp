@@ -61,8 +61,13 @@ void APvPGameMode::BeginPlay()
 void APvPGameMode::StartActionPhase()
 {
     if (CurrentPhase == EPvPGamePhase::Action) return;
-    
-    CurrentPhase = EPvPGamePhase::Action;
+
+    // Clear IdleFinishTimers
+    for (FTimerHandle& Timer : IdleFinishTimers)
+    {
+        GetWorld()->GetTimerManager().ClearTimer(Timer);
+    }
+    IdleFinishTimers.Empty();
         
     // Find all player characters and tell them to start following their paths
     TArray<AActor*> FoundCharacters;
@@ -70,21 +75,40 @@ void APvPGameMode::StartActionPhase()
         
     for (AActor* Actor : FoundCharacters)
     {
-        ABaseCharacter* Character = Cast<ABaseCharacter>(Actor);
-        if (Character)
+        if (ABaseCharacter* Character = Cast<ABaseCharacter>(Actor))
         {
-            // Move character to ground level for action phase
-            FVector CurrentLocation = Character->GetActorLocation();
-            //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
+            // it means the character is idle, so we complete the movement process and broadcast
+            if(!Character->GetLastWaypoint())
+            {
+                FTimerHandle NewTimer;
+                GetWorld()->GetTimerManager().SetTimer(
+                    NewTimer,
+                    FTimerDelegate::CreateLambda([Character, this]()
+                    {
+                        if (IsValid(Character))
+                        {
+                            UE_LOG(LogTemp, Warning, TEXT("Broadcasting MovementCompleted for idle character: %s"), *Character->GetName());
+
+                            bPlayerLastCardFinished = true;
+                            bPlayerMovementFinished = true;
+                            Character->MovementCompletedHandle.Broadcast(Character);
+                        }
+                    }),
+                    5.0f,
+                    false
+                );
                 
-            // Enable gravity for action phase (character will follow ground)
-            //Character->EnableGravity();
-                
+                IdleFinishTimers.Add(NewTimer);
+                continue;
+            }
+            
             // Start following the path
             Character->StartFollowingPath();
         }
     }
-        
+
+    CurrentPhase = EPvPGamePhase::Action;
+    
     // Call the blueprint event
     OnGamePhaseChanged(CurrentPhase);
         

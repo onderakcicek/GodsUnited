@@ -94,10 +94,13 @@ void ABaseCharacter::ProcessMovement()
 			{
 				TriggerItemAction();
 			}
+			
 			// Advance to next waypoint
 			MoveToNextWaypoint();
+			
 			if (!bIsFollowingPath) return;
 		}
+		
 		// Move toward the current waypoint
 		MoveToCurrentWaypoint();
 	}
@@ -293,10 +296,13 @@ void ABaseCharacter::OnWaypointReached()
 	{
 		TriggerItemAction();
 	}
+	
 	// Advance
 	MoveToNextWaypoint();
+	
 	// Redirect velocity to new waypoint path
 	if (!bIsFollowingPath) return;
+	
 	if (auto* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent()))
 	{
 		float Speed = MoveComp->Velocity.Size();

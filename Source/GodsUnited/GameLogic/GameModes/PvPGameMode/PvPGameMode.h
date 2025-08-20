@@ -64,4 +64,7 @@ private:
 	// Current game phase
 	UPROPERTY(VisibleAnywhere, Category = "Game")
 	EPvPGamePhase CurrentPhase;
+
+	UPROPERTY()
+	TArray<FTimerHandle> IdleFinishTimers;
 };
