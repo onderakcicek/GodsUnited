@@ -8,7 +8,12 @@ public class GodsUnited : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] {
+			"Core", "CoreUObject", "Engine",
+			"InputCore", "ApplicationCore",   // pointer/mouse
+			"Slate", "SlateCore",             // FPointerEvent, FText, InputEvent
+			"UMG"                             // UUserWidget, UDragDropOperation
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {"AIModule"});
 
