@@ -47,6 +47,9 @@ protected:
 
 private:
 	
+	UPROPERTY()
+	FVector LastValidDropLocation;
+
 	void UpdateDraggingActorPosition(const FPointerEvent& PointerEvent);
 	void SpawnDraggingActor();
 	void DestroyDraggingActor();
