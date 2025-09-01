@@ -29,7 +29,7 @@ public:
 
 	// Visual representation of the waypoint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UStaticMeshComponent* WaypointMesh;
+	UStaticMeshComponent* WaypointMesh;
     
 	// The index of this waypoint in the path
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Waypoint")
@@ -41,11 +41,11 @@ public:
 
 	// Text component to display waypoint index
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UTextRenderComponent* IndexText;
+	UTextRenderComponent* IndexText;
  
 	// Debug sphere to better visualize the waypoint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class USphereComponent* CollisionSphere;
+	USphereComponent* CollisionSphere;
 
 	UFUNCTION(BlueprintCallable)
 	FString GetItem();
@@ -71,4 +71,5 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Waypoint")
 	FString Item;
 	//TScriptInterface<IItemInterface> Item;
+	
 };

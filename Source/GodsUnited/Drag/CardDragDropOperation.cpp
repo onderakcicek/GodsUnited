@@ -15,6 +15,27 @@
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "GodsUnited/Player/Character/BaseCharacter.h"
+
+
+FORCEINLINE bool IsInsideCircle2D(const FVector& Center, const FVector& Point, float Radius)
+{
+	const float dx = Point.X - Center.X;
+	const float dy = Point.Y - Center.Y;
+	return (dx*dx + dy*dy) <= (Radius * Radius);
+}
+
+FORCEINLINE float CircleDistanceInDiameters(const FVector& Center, const FVector& Point, float Radius)
+{
+	const float dx = Point.X - Center.X;
+	const float dy = Point.Y - Center.Y;
+	const float distSq = dx*dx + dy*dy;
+	const float diamSq  = (2.f * Radius) * (2.f * Radius);
+
+	// kaç çapın karesi
+	return FMath::Sqrt(distSq / diamSq);
+}
+
 
 UCardDragDropOperation::UCardDragDropOperation()
 {
@@ -32,7 +53,7 @@ void UCardDragDropOperation::StartDragOperation(TSubclassOf<AActor> InDraggingAc
 	FinalActorClass = InFinalActorClass;
 
 	SpawnDraggingActor();
-	UpdateDraggingActorPosition(PointerEvent); // ilk karede
+	OnDragging(PointerEvent); // ilk karede
 }
 
 void UCardDragDropOperation::SpawnDraggingActor()
@@ -56,7 +77,7 @@ void UCardDragDropOperation::SpawnDraggingActor()
 void UCardDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
 {
 	Super::Dragged_Implementation(PointerEvent);
-	UpdateDraggingActorPosition(PointerEvent);
+	OnDragging(PointerEvent);
 }
 
 void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEvent)
@@ -147,13 +168,17 @@ void UCardDragDropOperation::DestroyDraggingActor()
 	}
 }
 
-void UCardDragDropOperation::UpdateDraggingActorPosition(const FPointerEvent& PointerEvent)
+void UCardDragDropOperation::OnDragging(const FPointerEvent& PointerEvent)
 {
 	APlayerController* PC = CachedPC.Get();
 	if (!PC) return;
 	UWorld* World = PC->GetWorld();
 	if (!World) return;
 
+	//-------------------------------------------
+	//  LOCATION
+	//-------------------------------------------
+	
 	// Viewport piksel pozisyonu al
 	FVector2D Pixel, Unused;
 	USlateBlueprintLibrary::AbsoluteToViewport(PC, PointerEvent.GetScreenSpacePosition(), Pixel, Unused);
@@ -163,6 +188,8 @@ void UCardDragDropOperation::UpdateDraggingActorPosition(const FPointerEvent& Po
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(CardDragTrace), /*bTraceComplex=*/false);
 	if (DraggingActor) Params.AddIgnoredActor(DraggingActor);
+	
+	FVector AdjustedLocation;
 
 	if (PC->GetHitResultAtScreenPosition(Screen, ECC_Visibility, false, Hit))
 	{
@@ -175,7 +202,7 @@ void UCardDragDropOperation::UpdateDraggingActorPosition(const FPointerEvent& Po
 			DraggingActor->GetActorBounds(false, Origin, BoxExtent);
 			
 			// Ayakların zemine basması için pozisyonu ayarla
-			FVector AdjustedLocation = Hit.Location;
+			AdjustedLocation = Hit.Location;
 			AdjustedLocation.Z += BoxExtent.Z; // Actor'ün yarı yüksekliği kadar yukarı
 			
 			DraggingActor->SetActorLocation(AdjustedLocation);
@@ -187,22 +214,25 @@ void UCardDragDropOperation::UpdateDraggingActorPosition(const FPointerEvent& Po
 		
 		DrawDebugSphere(World, LastValidDropLocation + FVector(0,0,10), 20.f, 12, FColor::Green, false, 0.03f);
 	}
-}
 
-FORCEINLINE bool IsInsideCircle2D(const FVector& Center, const FVector& Point, float Radius)
-{
-	const float dx = Point.X - Center.X;
-	const float dy = Point.Y - Center.Y;
-	return (dx*dx + dy*dy) <= (Radius * Radius);
-}
+	//-------------------------------------------
+	//  ENERGY
+	//-------------------------------------------
+	
+	// get player's last location
+	
+	if (!PlayerCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to get PlayerChar"));
+		return;
+	}
+	
+	FVector PlayerLastLocation = PlayerCharacter->GetLastMoveLocation();
+	if (IsInsideCircle2D(PlayerLastLocation, AdjustedLocation, 200.f))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Inside"));
+	}
 
-FORCEINLINE float CircleDistanceInDiameters_NoSqrt(const FVector& Center, const FVector& Point, float Radius)
-{
-	const float dx = Point.X - Center.X;
-	const float dy = Point.Y - Center.Y;
-	const float distSq = dx*dx + dy*dy;
-	const float diamSq  = (2.f * Radius) * (2.f * Radius);
-
-	// kaç çapın karesi
-	return FMath::Sqrt(distSq / diamSq);
+	float EnergyCost = CircleDistanceInDiameters(PlayerLastLocation, AdjustedLocation, 200.f);
+	UE_LOG(LogTemp, Warning, TEXT("COST : %f"), EnergyCost);
 }

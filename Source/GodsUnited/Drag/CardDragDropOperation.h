@@ -7,9 +7,9 @@
 #include "Engine/World.h"
 #include "CardDragDropOperation.generated.h"
 
-/**
- * 
- */
+class ABaseCharacter;
+
+
 UCLASS()
 class GODSUNITED_API UCardDragDropOperation : public UDragDropOperation
 {
@@ -38,6 +38,9 @@ public:
 
 	UPROPERTY()
 	TWeakObjectPtr<APlayerController> CachedPC;
+
+	UPROPERTY()
+	ABaseCharacter* PlayerCharacter = nullptr;
 	
 protected:
 	// Override functions
@@ -50,7 +53,7 @@ private:
 	UPROPERTY()
 	FVector LastValidDropLocation;
 
-	void UpdateDraggingActorPosition(const FPointerEvent& PointerEvent);
+	void OnDragging(const FPointerEvent& PointerEvent);
 	void SpawnDraggingActor();
 	void DestroyDraggingActor();
 };
