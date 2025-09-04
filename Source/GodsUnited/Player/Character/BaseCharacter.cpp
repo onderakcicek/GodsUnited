@@ -25,8 +25,10 @@ ABaseCharacter::ABaseCharacter()
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	// Cache game mode
 	GameMode = Cast<APvPGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	
 	// Lock Z position
 	FVector Loc = GetActorLocation();
 	SetActorLocation(FVector(Loc.X, Loc.Y, PlayerGroundOffset));
@@ -54,6 +56,18 @@ AWaypoint* ABaseCharacter::GetLastWaypoint()
 	}
 
 	return nullptr;
+}
+
+FVector ABaseCharacter::GetLastMoveLocation()
+{
+	AWaypoint* LastWaypoint = GetLastWaypoint();
+	
+	if (!LastWaypoint)
+	{
+		return GetActorLocation();	
+	}
+
+	return LastWaypoint->GetActorLocation();
 }
 
 // Main movement logic separated from Tick

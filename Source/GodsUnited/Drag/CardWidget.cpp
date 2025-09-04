@@ -3,6 +3,7 @@
 
 #include "CardWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "GodsUnited/Player/Character/BaseCharacter.h"
 #include "Input/Reply.h"
 
 FReply UCardWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

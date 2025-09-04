@@ -77,11 +77,11 @@ public:
 
 	// Add a waypoint to the character's path
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	void AddWaypointToPath(class AWaypoint* Waypoint);
+	void AddWaypointToPath(AWaypoint* Waypoint);
 
 	// Get all waypoints in the character's path
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
-	const TArray<class AWaypoint*>& GetPath() const { return Path; }
+	const TArray<AWaypoint*>& GetPath() const { return Path; }
 
 	// Movement tolerance (how close to get to a waypoint)
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -99,6 +99,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	AWaypoint* GetLastWaypoint();
+	
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	FVector GetLastMoveLocation();
 
 	//-----------------------------------------------------------------------
 	// ENERGY SYSTEM
