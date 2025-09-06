@@ -1,22 +1,15 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CardDragDropOperation.h"
+#include "../Player/BasePlayerDefinitions.h"
 
-#include "Blueprint/WidgetLayoutLibrary.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/PlayerController.h"
-#include "Components/Widget.h"
-#include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "GodsUnited/Player/Character/BaseCharacter.h"
-
 
 FORCEINLINE bool IsInsideCircle2D(const FVector& Center, const FVector& Point, float Radius)
 {
@@ -32,10 +25,9 @@ FORCEINLINE float CircleDistanceInDiameters(const FVector& Center, const FVector
 	const float distSq = dx*dx + dy*dy;
 	const float diamSq  = (2.f * Radius) * (2.f * Radius);
 
-	// kaç çapın karesi
+	// How many diameters squared
 	return FMath::Sqrt(distSq / diamSq);
 }
-
 
 UCardDragDropOperation::UCardDragDropOperation()
 {
@@ -53,7 +45,7 @@ void UCardDragDropOperation::StartDragOperation(TSubclassOf<AActor> InDraggingAc
 	FinalActorClass = InFinalActorClass;
 
 	SpawnDraggingActor();
-	OnDragging(PointerEvent); // ilk karede
+	OnDragging(PointerEvent); // First frame
 }
 
 void UCardDragDropOperation::SpawnDraggingActor()
@@ -89,7 +81,7 @@ void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEve
 	UWorld* World = PC->GetWorld();
 	if (!World) return;
 
-	// Drop pozisyonunu güncelle
+	// Update drop position
 	FVector2D Pixel, Unused;
 	USlateBlueprintLibrary::AbsoluteToViewport(PC, PointerEvent.GetScreenSpacePosition(), Pixel, Unused);
 	FVector2D Screen = Pixel;
@@ -101,7 +93,7 @@ void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEve
 
 	bool bHit = PC->GetHitResultAtScreenPosition(Screen, ECC_Visibility, false, Hit);
 	
-	// Debug için log ekleyelim
+	// Debug log
 	UE_LOG(LogTemp, Warning, TEXT("Drop - Hit: %s, FinalActorClass: %s, World: %s"), 
 		bHit ? TEXT("True") : TEXT("False"),
 		FinalActorClass ? TEXT("Valid") : TEXT("Invalid"),
@@ -112,23 +104,23 @@ void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEve
 		LastValidDropLocation = Hit.Location;
 	}
     
-	// Final actor'ü spawn et
+	// Spawn final actor
 	if (FinalActorClass && (bHit || LastValidDropLocation != FVector::ZeroVector))
 	{
 		FVector SpawnLocation = bHit ? Hit.Location : LastValidDropLocation;
 		
-		// Actor'ü spawn et
+		// Spawn the actor
 		AActor* SpawnedActor = World->SpawnActor<AActor>(FinalActorClass, SpawnLocation, FRotator::ZeroRotator);
 		
 		if (SpawnedActor)
 		{
-			// Actor'ün bounds'unu hesapla
+			// Calculate actor bounds
 			FVector Origin, BoxExtent;
 			SpawnedActor->GetActorBounds(false, Origin, BoxExtent);
 			
-			// Ayakların zemine basması için pozisyonu ayarla
+			// Adjust position so feet touch the ground
 			FVector AdjustedLocation = SpawnLocation;
-			AdjustedLocation.Z += BoxExtent.Z; // Actor'ün yarı yüksekliği kadar yukarı
+			AdjustedLocation.Z += BoxExtent.Z; // Half height of actor upward
 			
 			SpawnedActor->SetActorLocation(AdjustedLocation);
 			
@@ -136,12 +128,15 @@ void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEve
 			UE_LOG(LogTemp, Warning, TEXT("Spawned Actor: Success at location: %s, BoxExtent.Z: %f"), 
 				*AdjustedLocation.ToString(), BoxExtent.Z);
 			
-			// Karakterin etrafında debug circle çiz (karakter merkezde)
-			float CircleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 10.f; // Biraz daha büyük radius
-			DrawDebugCircle(World, AdjustedLocation, CircleRadius, 32, FColor::Blue, false, 3.0f, 0, 3.0f, FVector(0,1,0), FVector(1,0,0));
+			// Draw debug circle around character (character at center)
+			float CircleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * CardSystemConstants::DRAG_CIRCLE_RADIUS_MULTIPLIER;
+			DrawDebugCircle(World, AdjustedLocation, CircleRadius, CardSystemConstants::DEBUG_CIRCLE_SEGMENTS, 
+				FColor::Blue, false, CardSystemConstants::DEBUG_DURATION_LONG, 0, CardSystemConstants::DEBUG_CIRCLE_THICKNESS, 
+				FVector(0,1,0), FVector(1,0,0));
 			
-			// Spawned actor için debug sphere (ayakların altında)
-			DrawDebugSphere(World, SpawnLocation, 20.f, 12, FColor::Black, false, 3.0f);
+			// Debug sphere for spawned actor (under the feet)
+			DrawDebugSphere(World, SpawnLocation, CardSystemConstants::DEBUG_SPHERE_SIZE, 
+				PlayerDebugConstants::SPHERE_SEGMENTS, FColor::Black, false, CardSystemConstants::DEBUG_DURATION_LONG);
 		}
 		else
 		{
@@ -149,7 +144,7 @@ void UCardDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEve
 		}
 	}
     
-	// Dragging actor'ü sil
+	// Destroy dragging actor
 	DestroyDraggingActor();
 }
 
@@ -176,15 +171,15 @@ void UCardDragDropOperation::OnDragging(const FPointerEvent& PointerEvent)
 	if (!World) return;
 
 	//-------------------------------------------
-	//  LOCATION
+	//  LOCATION HANDLING
 	//-------------------------------------------
 	
-	// Viewport piksel pozisyonu al
+	// Get viewport pixel position
 	FVector2D Pixel, Unused;
 	USlateBlueprintLibrary::AbsoluteToViewport(PC, PointerEvent.GetScreenSpacePosition(), Pixel, Unused);
 	FVector2D Screen = Pixel;
 
-	// Raycast zemine
+	// Raycast to ground
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(CardDragTrace), /*bTraceComplex=*/false);
 	if (DraggingActor) Params.AddIgnoredActor(DraggingActor);
@@ -197,30 +192,33 @@ void UCardDragDropOperation::OnDragging(const FPointerEvent& PointerEvent)
 
 		if (DraggingActor)
 		{
-			// Actor'ün bounds'unu hesapla
+			// Calculate actor bounds
 			FVector Origin, BoxExtent;
 			DraggingActor->GetActorBounds(false, Origin, BoxExtent);
 			
-			// Ayakların zemine basması için pozisyonu ayarla
+			// Adjust position so feet touch the ground
 			AdjustedLocation = Hit.Location;
-			AdjustedLocation.Z += BoxExtent.Z; // Actor'ün yarı yüksekliği kadar yukarı
+			AdjustedLocation.Z += BoxExtent.Z; // Half height of actor upward
 			
 			DraggingActor->SetActorLocation(AdjustedLocation);
 			
-			// Karakterin etrafında debug circle çiz (karakter merkezde)
-			float CircleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 10.f; // Biraz daha büyük radius
-			DrawDebugCircle(World, AdjustedLocation, CircleRadius, 32, FColor::Green, false, 0.03f, 0, 2.0f, FVector(0,1,0), FVector(1,0,0));
+			// Draw debug circle around character (character at center)
+			float CircleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * CardSystemConstants::DRAG_CIRCLE_RADIUS_MULTIPLIER;
+			DrawDebugCircle(World, AdjustedLocation, CircleRadius, CardSystemConstants::DEBUG_CIRCLE_SEGMENTS, 
+				FColor::Green, false, CardSystemConstants::DEBUG_DURATION_SHORT, 0, PlayerDebugConstants::LINE_THICKNESS, 
+				FVector(0,1,0), FVector(1,0,0));
 		}
 		
-		DrawDebugSphere(World, LastValidDropLocation + FVector(0,0,10), 20.f, 12, FColor::Green, false, 0.03f);
+		DrawDebugSphere(World, LastValidDropLocation + FVector(0, 0, CardSystemConstants::DEBUG_SPHERE_HEIGHT_OFFSET), 
+			CardSystemConstants::DEBUG_SPHERE_SIZE, PlayerDebugConstants::SPHERE_SEGMENTS, 
+			FColor::Green, false, CardSystemConstants::DEBUG_DURATION_SHORT);
 	}
 
 	//-------------------------------------------
-	//  ENERGY
+	//  ENERGY CALCULATION
 	//-------------------------------------------
 	
-	// get player's last location
-	
+	// Get player's last location
 	if (!PlayerCharacter)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to get PlayerChar"));
@@ -228,11 +226,11 @@ void UCardDragDropOperation::OnDragging(const FPointerEvent& PointerEvent)
 	}
 	
 	FVector PlayerLastLocation = PlayerCharacter->GetLastMoveLocation();
-	if (IsInsideCircle2D(PlayerLastLocation, AdjustedLocation, 200.f))
+	if (IsInsideCircle2D(PlayerLastLocation, AdjustedLocation, CardSystemConstants::PLACEMENT_RADIUS))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Inside"));
+		UE_LOG(LogTemp, Warning, TEXT("Inside placement radius"));
 	}
 
-	float EnergyCost = CircleDistanceInDiameters(PlayerLastLocation, AdjustedLocation, 200.f);
-	UE_LOG(LogTemp, Warning, TEXT("COST : %f"), EnergyCost);
+	float EnergyCost = CircleDistanceInDiameters(PlayerLastLocation, AdjustedLocation, CardSystemConstants::PLACEMENT_RADIUS);
+	UE_LOG(LogTemp, Warning, TEXT("Energy Cost: %f"), EnergyCost);
 }
