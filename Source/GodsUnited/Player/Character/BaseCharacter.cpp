@@ -5,9 +5,6 @@
 #include "../Components/WaypointMovementComponent.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
-
-#include "GodsUnited/GameLogic/GameModes/PvPGameMode/PvPGameMode.h"
 
 // Constructor: enable ticking and initialize defaults
 ABaseCharacter::ABaseCharacter()
@@ -18,17 +15,14 @@ ABaseCharacter::ABaseCharacter()
 	WaypointMovementComponent = CreateDefaultSubobject<UWaypointMovementComponent>(TEXT("WaypointMovementComponent"));
 	
 	// Initialize energy values
-	Energy = 0.0f;
-	BonusEnergy = 0.0f;
+	Energy = 10;
+	BufferEnergy = 0;
 }
 
 // Called at game start or actor spawn
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Cache game mode
-	GameMode = Cast<APvPGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	
 	// Lock Z position
 	FVector Loc = GetActorLocation();
@@ -44,6 +38,7 @@ void ABaseCharacter::BeginPlay()
 	// Bind to movement completion event
 	if (WaypointMovementComponent)
 	{
+		WaypointMovementComponent->InitializeStartingWaypoint();
 		WaypointMovementComponent->OnMovementCompleted.AddDynamic(this, &ABaseCharacter::OnMovementCompleted);
 	}
 }
@@ -103,6 +98,18 @@ void ABaseCharacter::ResetPath()
 	}
 }
 
+void ABaseCharacter::InitializeStartingWaypoint()
+{
+	if (WaypointMovementComponent)
+	{
+		WaypointMovementComponent->InitializeStartingWaypoint();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("BaseCharacter: WaypointMovementComponent is null"));
+	}
+}
+
 AWaypoint* ABaseCharacter::CreateWaypoint(FVector Location, FString Item)
 {
 	if (WaypointMovementComponent)
@@ -138,6 +145,10 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void ABaseCharacter::OnMouseClick(FHitResult HitResult, FString ItemId)
 {
+	UE_LOG(LogTemp, Error, TEXT("BaseCharacter::OnMouseClick called"));
+	UE_LOG(LogTemp, Error, TEXT("Received HitResult Location: %s"), *HitResult.Location.ToString());
+	UE_LOG(LogTemp, Error, TEXT("Location ContainsNaN: %s"), HitResult.Location.ContainsNaN() ? TEXT("TRUE") : TEXT("FALSE"));
+    
 	// Validate component exists
 	if (!WaypointMovementComponent || !IsValid(WaypointMovementComponent))
 	{
@@ -145,20 +156,7 @@ void ABaseCharacter::OnMouseClick(FHitResult HitResult, FString ItemId)
 		return;
 	}
 
-	// Validate hit result
-	if (!HitResult.bBlockingHit)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BaseCharacter: Invalid hit result provided to OnMouseClick"));
-		return;
-	}
-
-	// Validate hit location
-	if (HitResult.Location.ContainsNaN())
-	{
-		UE_LOG(LogTemp, Error, TEXT("BaseCharacter: Hit location is invalid"));
-		return;
-	}
-
+	// Forward to component
 	WaypointMovementComponent->HandleMouseClick(HitResult, ItemId);
 }
 
@@ -175,17 +173,17 @@ void ABaseCharacter::TriggerAction_Implementation(const FString& ItemId)
 // Energy System
 //-------------------------------------------
 
-float ABaseCharacter::CalculateMovementCost(const FVector& InputLocation)
+int32 ABaseCharacter::CalculateMovementCost(const FVector& InputLocation)
 {
 	if (WaypointMovementComponent)
 	{
-		return WaypointMovementComponent->CalculateMovementCost(InputLocation);
+		return WaypointMovementComponent->CalculateWaypointEnergyCost(InputLocation);
 	}
 	
 	return 0.0f;
 }
 
-void ABaseCharacter::SpendEnergyToMove(const float MoveCost)
+void ABaseCharacter::SpendEnergyToMove(const int32 MoveCost)
 {
 	if (WaypointMovementComponent)
 	{

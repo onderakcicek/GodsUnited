@@ -151,7 +151,6 @@ void APvPGameMode::StartPreparationPhase()
             //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
                 
             // Reset the path
-            Character->ResetPath();
             SetCharacterNewRoundEnergy(Character);
         }
     }

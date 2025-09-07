@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "CardWidget.h"
-#include "CardDragDropOperation.h"
+#include "GenericDragDropOperation.h"
 #include "DragTestHUD.generated.h"
 
 /**

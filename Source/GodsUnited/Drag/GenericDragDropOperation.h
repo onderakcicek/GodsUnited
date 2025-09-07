@@ -1,23 +1,24 @@
-﻿#pragma once
+﻿
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Engine/HitResult.h"
-#include "CardDragDropOperation.generated.h"
+#include "GenericDragDropOperation.generated.h"
 
 class ABaseCharacter;
 
 /**
- * Custom drag drop operation for card system
+ * Generic drag drop operation for both movement and card systems
  * Handles spawning temporary actors during drag and final placement on drop
  */
 UCLASS()
-class GODSUNITED_API UCardDragDropOperation : public UDragDropOperation
+class GODSUNITED_API UGenericDragDropOperation : public UDragDropOperation
 {
 	GENERATED_BODY()
 
 public:
-	UCardDragDropOperation();
+	UGenericDragDropOperation();
 
 	//-------------------------------------------
 	// Drag Operation Lifecycle
@@ -27,10 +28,12 @@ public:
 	 * Initialize and start the drag operation
 	 * @param InDraggingActorClass Class to spawn for drag preview
 	 * @param InFinalActorClass Class to spawn on successful drop
+	 * @param InItemId Item identifier (empty for movement, filled for cards)
 	 * @param PointerEvent Initial pointer event that started the drag
 	 */
 	void StartDragOperation(TSubclassOf<AActor> InDraggingActorClass,
 	                        TSubclassOf<AActor> InFinalActorClass,
+	                        const FString& InItemId,
 	                        const FPointerEvent& PointerEvent);
 
 	//-------------------------------------------
@@ -53,6 +56,10 @@ public:
 	UPROPERTY()
 	ABaseCharacter* PlayerCharacter;
 
+	/** Item identifier for this drag operation */
+	UPROPERTY()
+	FString ItemId;
+
 protected:
 	//-------------------------------------------
 	// Drag Actor Management
@@ -67,6 +74,24 @@ protected:
 	 * Clean up and destroy the dragging actor
 	 */
 	void DestroyDraggingActor();
+
+	//-------------------------------------------
+	// Drop Validation and Execution
+	//-------------------------------------------
+
+	/**
+	 * Validate and execute waypoint placement
+	 * @param HitResult Hit result for drop location
+	 * @return True if placement was successful
+	 */
+	bool ExecuteWaypointPlacement(const FHitResult& HitResult);
+
+	/**
+	 * Spawn final actor if specified
+	 * @param SpawnLocation World location for final actor
+	 * @return Spawned actor or nullptr if failed
+	 */
+	AActor* SpawnFinalActor(const FVector& SpawnLocation);
 
 	//-------------------------------------------
 	// Drag Event Handling
@@ -99,7 +124,30 @@ protected:
 	 */
 	void RenderDragVisualization(UWorld* World, const FVector& ActorLocation, const FVector& BoxExtent);
 
-protected:
+	//-------------------------------------------
+	// Snap Detection
+	//-------------------------------------------
+
+	/**
+	 * Check if drag position should snap to last waypoint
+	 * @param DragLocation Current drag position
+	 * @return Snap position if should snap, original position otherwise
+	 */
+	FVector CheckLastWaypointSnap(const FVector& DragLocation);
+
+	/**
+	 * Get snap radius for waypoint detection
+	 */
+	float GetSnapRadius() const;
+
+	/**
+	 * Render snap visualization feedback
+	 * @param World World context
+	 * @param SnapLocation Position to show snap feedback
+	 * @param bIsSnapping Whether currently snapping
+	 */
+	void RenderSnapVisualization(UWorld* World, const FVector& SnapLocation, bool bIsSnapping);
+	
 	//-------------------------------------------
 	// Drag State
 	//-------------------------------------------
@@ -107,8 +155,8 @@ protected:
 	/** Actor class spawned during drag for preview */
 	UPROPERTY()
 	TSubclassOf<AActor> DraggingActorClass;
-
-	/** Actor class spawned on successful drop */
+	
+	/** Actor class spawned on successful drop (optional) */
 	UPROPERTY()
 	TSubclassOf<AActor> FinalActorClass;
 
@@ -119,4 +167,28 @@ protected:
 	/** Last valid world location for drop placement */
 	UPROPERTY()
 	FVector LastValidDropLocation;
+
+	/** Cached energy cost for current drag position */
+	UPROPERTY()
+	int32 CachedEnergyCost;
+
+private:
+	/**
+	 * Check if player can afford the energy cost for placement
+	 * @param RequiredEnergy Energy cost for placement
+	 * @return True if affordable
+	 */
+	bool CanAffordEnergyDrop(int32 RequiredEnergy) const;
+
+	/**
+	 * Determine if this is a movement waypoint (empty ItemId)
+	 * @return True if movement waypoint
+	 */
+	bool IsMovementDrag() const { return ItemId.IsEmpty(); }
+
+	/**
+	 * Determine if this is a card waypoint (filled ItemId)
+	 * @return True if card waypoint
+	 */
+	bool IsCardDrag() const { return !ItemId.IsEmpty(); }
 };

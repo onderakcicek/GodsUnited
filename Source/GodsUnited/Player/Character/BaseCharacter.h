@@ -58,6 +58,12 @@ public:
 	void ResetPath();
 
 	/**
+	 * Initialize starting waypoint at character's current position
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Waypoint Movement")
+	void InitializeStartingWaypoint();
+
+	/**
 	 * Create a waypoint actor at specified location
 	 * @param Location World position for waypoint
 	 * @param Item Optional item identifier
@@ -122,14 +128,14 @@ public:
 	 * @return Energy cost for movement
 	 */
 	UFUNCTION(BlueprintPure, Category = "Energy System")
-	float CalculateMovementCost(const FVector& InputLocation);
+	int32 CalculateMovementCost(const FVector& InputLocation);
 
 	/**
 	 * Spend energy for movement, using bonus energy first
 	 * @param MoveCost Amount of energy to spend
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Energy System")
-	void SpendEnergyToMove(const float MoveCost);
+	void SpendEnergyToMove(const int32 MoveCost);
 
 	//-------------------------------------------
 	// Component Access
@@ -174,11 +180,11 @@ public:
 	
 	/** Current energy available for movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Energy")
-	float Energy;
+	int32 Energy;
 
 	/** Bonus energy that provides 2x conversion rate */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Energy")
-	float BonusEnergy;
+	int32 BufferEnergy;
 
 	/** Z-offset for ground positioning */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -192,12 +198,4 @@ protected:
 	/** Component responsible for waypoint-based movement */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UWaypointMovementComponent* WaypointMovementComponent;
-
-	//-------------------------------------------
-	// Cached References
-	//-------------------------------------------
-	
-	/** Cached reference to game mode */
-	UPROPERTY()
-	APvPGameMode* GameMode;
 };
