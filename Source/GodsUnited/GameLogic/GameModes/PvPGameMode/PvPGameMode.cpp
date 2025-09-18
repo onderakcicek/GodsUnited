@@ -5,7 +5,6 @@
 
 #include "GodsUnited/GameLogic/Managers/ActionManager/Waypoint.h"
 #include "GodsUnited/Player/Character/BaseCharacter.h"
-#include "GodsUnited/Player/Components/WaypointMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 APvPGameMode::APvPGameMode()
@@ -92,13 +91,10 @@ void APvPGameMode::StartActionPhase()
 
                             bPlayerLastCardFinished = true;
                             bPlayerMovementFinished = true;
-                            if (UWaypointMovementComponent* MovementComp = Character->GetWaypointMovementComponent())
-                            {
-                                MovementComp->OnMovementCompleted.Broadcast(Character);
-                            }
+                            Character->MovementCompletedHandle.Broadcast(Character);
                         }
                     }),
-                    5.0f,
+                    2.0f,
                     false
                 );
                 
@@ -151,6 +147,7 @@ void APvPGameMode::StartPreparationPhase()
             //Character->SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, Character->PlayerGroundOffset));
                 
             // Reset the path
+            Character->ResetPath();
             SetCharacterNewRoundEnergy(Character);
         }
     }
