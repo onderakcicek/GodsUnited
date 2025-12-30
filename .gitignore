@@ -75,3 +75,6 @@ Plugins/**/Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 Content/Widgets/BP_WidgetDrag.uasset
+
+# Whitelist GameAnalytics Third-party Libs
+!**/GameAnalytics/**/*.lib
