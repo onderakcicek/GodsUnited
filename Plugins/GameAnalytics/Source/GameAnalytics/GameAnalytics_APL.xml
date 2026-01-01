@@ -5,38 +5,60 @@
     <init>
         <log text="GameAnalitics init"/>
     </init>
-
-    <!--gradleCopies>
-			<copyFile src="$S(PluginDir)/GA-SDK-ANDROID/lib/gameanalytics.aar"
-					  dst="$S(BuildDir)/gradle/app/libs/gameanalytics.aar"/>
-
-            <copyFile src="$S(PluginDir)/GA-SDK-ANDROID/lib/gameanalytics.aar"
-					  dst="$S(BuildDir)/gradle/AFSProject/app/libs/gameanalytics.aar"/>
-	</gradleCopies-->
-
+    
     <!-- optional additions to proguard -->
     <proguardAdditions>
         <insert>
 -keep class com.gameanalytics.sdk.** { *; }
 -keep class android.net.** { *; }
 -dontwarn android.net.**
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
         </insert>
     </proguardAdditions>
-
+    
     <buildGradleAdditions>
         <insert>
-repositories {
-    maven { url 'https://maven.gameanalytics.com/release' }
-    maven { url 'https://maven.google.com' }
-    flatDir { dirs("libs") }
-}
- dependencies {
-     implementation('com.gameanalytics.sdk:gameanalytics-android:7.0.0')
-     implementation('com.google.android.gms:play-services-appset:16.0.1')
- }
+            android {
+                packagingOptions {
+                    exclude 'META-INF/DEPENDENCIES'
+                    exclude 'META-INF/LICENSE'
+                    exclude 'META-INF/LICENSE.txt'
+                    exclude 'META-INF/NOTICE'
+                    exclude 'META-INF/NOTICE.txt'
+                }
+                
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_1_8
+                    targetCompatibility JavaVersion.VERSION_1_8
+                }
+            }
+
+            configurations {
+                all {
+                    exclude group: 'com.google.android.gms', module: 'play-services-games-v2'
+                }
+            }
+
+            repositories {
+                maven { url 'https://maven.gameanalytics.com/release' }
+                maven { url 'https://maven.google.com' }
+                flatDir { dirs("libs") }
+            }
+
+            dependencies {
+                implementation('com.gameanalytics.sdk:gameanalytics-android:6.5.1') {
+                    exclude group: 'com.android.support'
+                    exclude group: 'com.google.android.gms', module: 'play-services-games-v2'
+                    transitive = true
+                }
+                implementation('com.google.android.gms:play-services-appset:16.0.1')
+            }
         </insert>
     </buildGradleAdditions>
-
+    
     <!-- optional updates applied to AndroidManifest.xml -->
     <androidManifestUpdates>
         <addPermission android:name="android.permission.INTERNET"/>
