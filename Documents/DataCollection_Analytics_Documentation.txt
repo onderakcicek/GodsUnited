@@ -1,0 +1,195 @@
+DATA COLLECTION – EVENT DOKÜMANTASYONU
+====================================
+
+Bu doküman oyunda gönderilen analytics event’lerini, bu event’lerin hangi bağlamda atıldığını
+ve GameAnalytics panelinde bu verilerin nasıl okunacağını açıklar.
+
+Tüm event’ler client tarafında, player-perspective ile gönderilir.
+
+----------------------------------------------------------------
+1. GENEL PRENSİPLER
+----------------------------------------------------------------
+
+- Analytics event’leri match değil, oyuncu bazlıdır.
+- 1v1 bir match için çoğu event iki oyuncu tarafından gönderilir.
+- Event isimleri ':' ile ayrılmış hiyerarşik string’lerdir.
+- Event isimlerinde string literal kullanılmaz, enum’lardan üretilir.
+- Aynı session içindeki event’ler birlikte okunur.
+
+----------------------------------------------------------------
+2. ENUM KIRILIMLARI
+----------------------------------------------------------------
+
+EMatchConnectivity:
+- online
+- offline
+
+EMatchResult:
+- win
+- lose
+- terminated
+
+EMatchTerminateReason:
+- quit
+- networktimeout
+- disconnected
+
+EPostMatchAction:
+- rematch
+- return_to_loadout
+
+----------------------------------------------------------------
+3. MATCH EVENT’LERİ
+----------------------------------------------------------------
+
+3.1 Match Start
+
+Event:
+match:start:<connectivity>
+
+Örnekler:
+match:start:online
+match:start:offline
+
+Ne anlatır:
+Oyuncu bir maça girdi.
+
+Nasıl okunur:
+- Toplam match sayısı = match:start:* / 2
+- Online vs offline match dağılımı
+
+----------------------------------------------------------------
+3.2 Match End (Normal Bitiş)
+
+Event (value ile):
+match:end:<connectivity>:<result>
+
+Value:
+- Match süresi (saniye)
+
+Örnekler:
+match:end:online:win
+match:end:online:lose
+
+Nasıl okunur:
+- Win oranı = win / (win + lose)
+- Ortalama match süresi (value ortalaması)
+- Online vs offline maçların süre farkı
+
+----------------------------------------------------------------
+3.3 Match Terminated
+
+Event 1 (sayım için):
+match:end:<connectivity>:terminated
+
+Event 2 (neden + süre için, value ile):
+match:end:<connectivity>:terminated:<reason>
+
+Örnekler:
+match:end:online:terminated
+match:end:online:terminated:networktimeout
+match:end:online:terminated:quit
+
+Nasıl okunur:
+- Terminated match oranı
+- Termination nedenlerinin yüzdesi
+- Terminated match’lerin ortalama süresi
+
+----------------------------------------------------------------
+4. POST-MATCH EVENT’LERİ
+----------------------------------------------------------------
+
+4.1 Post-Match Action
+
+Event (value ile):
+postmatch:action:<action>:<connectivity>:<result>
+
+Value:
+- Match bittikten sonra bu aksiyonun seçilmesine kadar geçen süre (saniye)
+
+Örnekler:
+postmatch:action:rematch:online:win
+postmatch:action:rematch:online:lose
+postmatch:action:return_to_loadout:offline:lose
+
+Ne anlatır:
+Oyuncu match bittikten sonra ne yapmayı tercih etti.
+
+----------------------------------------------------------------
+5. VERİ NASIL OKUNUR? (ÖRNEK SORULAR)
+----------------------------------------------------------------
+
+Soru 1:
+Kaybeden oyuncular rematch mi yapıyor, loadout’a mı dönüyor?
+
+Nasıl bakılır:
+- postmatch:action:rematch:*:lose
+- postmatch:action:return_to_loadout:*:lose
+
+Bu iki event sayısı karşılaştırılır.
+
+----------------------------------------------------------------
+
+Soru 2:
+Kaybedip loadout’a dönen oyuncular hangi build’leri kullanmış?
+
+Nasıl bakılır:
+Filtre:
+postmatch:action:return_to_loadout:*:lose
+
+Aynı session içinde bakılan diğer event:
+match:build:*
+
+Bu event’lerin dağılımı incelenir.
+
+----------------------------------------------------------------
+
+Soru 3:
+Terminated maçlar normal maçlara göre daha mı kısa?
+
+Nasıl bakılır:
+- match:end:*:terminated:*  (value ortalaması)
+- match:end:*:win ve match:end:*:lose (value ortalaması)
+
+Süreler karşılaştırılır.
+
+----------------------------------------------------------------
+
+Soru 4:
+Online maçlarda rage quit daha mı fazla?
+
+Nasıl bakılır:
+- match:end:online:terminated:quit
+- match:end:offline:terminated:quit
+
+Event sayıları karşılaştırılır.
+
+----------------------------------------------------------------
+
+Soru 5:
+Kaybedip hemen rematch yapan oyuncular daha sonra kazanıyor mu?
+
+Nasıl bakılır:
+1) postmatch:action:rematch:*:lose
+2) Bu oyuncuların sonraki session’larında:
+   match:end:*:win oranına bakılır
+
+----------------------------------------------------------------
+6. MATCH SAYISI NASIL HESAPLANIR
+----------------------------------------------------------------
+
+Toplam match sayısı:
+match:start:* / 2
+
+Terminated match sayısı:
+match:end:*:terminated / 2
+
+Bu bölme işlemi 1v1 olması nedeniyle yapılır.
+
+----------------------------------------------------------------
+7. ÖZET
+----------------------------------------------------------------
+
+- Tek bir event tek başına anlamlı değildir.
+- Analytics cevapları, aynı session’daki event’lerin birlikte okunmasıyla çıkar.
+- Event isim sıralaması, panelde doğru soruyu sormayı kolaylaştırmak için bilinçli seçilmiştir.

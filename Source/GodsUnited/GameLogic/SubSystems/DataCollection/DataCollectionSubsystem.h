@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "DataCollectionDefinitions.h"
 
 #include "DataCollectionSubsystem.generated.h"
 
@@ -19,6 +20,8 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
+	/* ---------- EVENTS ---------- */
+	
 	/* ---------- Session ---------- */
 	UFUNCTION(BlueprintCallable, Category="Data Collection|Session")
 	void SessionStarted();
@@ -29,23 +32,30 @@ public:
 	/* ---------- Match ---------- */
 
 	UFUNCTION(BlueprintCallable, Category="Data Collection|Match")
-	void MatchStarted();
+	void MatchStarted(EMatchConnectivity Connectivity);
 
 	UFUNCTION(BlueprintCallable, Category="Data Collection|Match")
-	void MatchEnded(bool bWin);
+	void MatchEnded(EMatchConnectivity Connectivity, EMatchResult Result, float Duration = 0.f);
+	
+	UFUNCTION(BlueprintCallable, Category="Data Collection|Match")
+	void MatchTerminated(EMatchConnectivity Connectivity, EMatchTerminateReason Reason, float Duration = 0.f);
 
-	/* ---------- UI ---------- */
+	UFUNCTION(BlueprintCallable)
+	void PostMatchAction(
+		EPostMatchAction Action,
+		EMatchConnectivity Connectivity,
+		EMatchResult Result,
+		float DecisionTimeSeconds
+	);
 
-	UFUNCTION(BlueprintCallable, Category="Data Collection|UI")
-	void RematchClicked();
-
-	UFUNCTION(BlueprintCallable, Category="Data Collection|UI")
-	void ReturnToLoadOutClicked();
+	/* --------------------------------------- */
 
 private:
 	bool bEnabled = true;
 
 	bool IsEditorRuntime() const;
 	
-	void SendEvent(const FString& EventName);
+	void SendDesignEvent(const FString& EventName);
+
+	void SendDesignEventValue(const FString& EventName, float Value);
 };
