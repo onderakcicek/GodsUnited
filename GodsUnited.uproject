@@ -7,10 +7,7 @@
 		{
 			"Name": "GodsUnited",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine"
-			]
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -20,7 +17,7 @@
 		},
 		{
 			"Name": "VisualStudioTools",
-			"Enabled": false,
+			"Enabled": true,
 			"SupportedTargetPlatforms": [
 				"Win64"
 			],
@@ -28,8 +25,7 @@
 		},
 		{
 			"Name": "PathFollow",
-			"Enabled": false,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/7c19d00ad42a4b67972eea383dedb7f3"
+			"Enabled": false
 		},
 		{
 			"Name": "AnalyticsBlueprintLibrary",
