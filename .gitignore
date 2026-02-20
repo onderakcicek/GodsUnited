@@ -78,3 +78,4 @@ Content/Widgets/BP_WidgetDrag.uasset
 
 # Whitelist GameAnalytics Third-party Libs
 !**/GameAnalytics/**/*.lib
+Content/UI/Widgets/WBP_Main.uasset
